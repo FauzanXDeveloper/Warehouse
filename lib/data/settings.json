@@ -1,0 +1,15 @@
+{
+  "theme": "dark",
+  "fontSize": 13,
+  "autoComplete": true,
+  "autoFormat": false,
+  "minimap": false,
+  "limitDefault": 100,
+  "wordWrap": true,
+  "lineNumbers": true,
+  "tabSize": 2,
+  "cursorStyle": "line",
+  "fontFamily": "'Courier New', monospace",
+  "accentColor": "#1f6feb",
+  "cursorBlinking": "solid"
+}

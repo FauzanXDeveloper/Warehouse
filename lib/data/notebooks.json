@@ -1,0 +1,1979 @@
+[
+  {
+    "id": "system_sql_functions_w3schools",
+    "name": "W3Schools SQL Functions (Examples)",
+    "createdAt": "02/07/2026",
+    "system": true,
+    "version": 3,
+    "cells": [
+      {
+        "id": "sql_functions_reference_intro_md",
+        "type": "markdown",
+        "content": "# sql functions reference\nGenerated from the W3Schools SQL reference, with runnable examples over a demo table.\n\n**Run the Setup cell below first** — it creates `my_db` and the `demo` table that every example uses.",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_setup_md",
+        "type": "markdown",
+        "content": "## ⚙️ Setup — demo database & table\nCreates `my_db.demo` with 10 sample rows spanning text, numeric and date columns (plus NULLs).",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_setup_sql",
+        "type": "sql",
+        "content": "-- ⚙️ SETUP — run this cell first.\n-- Creates my_db and the demo table that every example below uses.\nCREATE DATABASE IF NOT EXISTS my_db;\nUSE my_db;\nDROP TABLE IF EXISTS demo;\nCREATE TABLE demo (\n  id INTEGER, name TEXT, category TEXT, city TEXT,\n  amount REAL, qty INTEGER, score REAL,\n  created_at DATE, updated_at DATE, due_date DATE,\n  is_active INTEGER, notes TEXT\n);\nINSERT INTO demo (id, name, category, city, amount, qty, score, created_at, updated_at, due_date, is_active, notes) VALUES\n  (1, 'Aisyah Rahman', 'Retail', 'Kuala Lumpur', 1520.75, 3, 88.5, '2024-01-15', '2024-06-01', '2026-03-31', 1, 'VIP client'),\n  (2, 'Budi Santoso', 'Corporate', 'Johor Bahru', 9800.00, 12, 72.0, '2023-11-02', '2024-05-20', '2026-04-30', 1, NULL),\n  (3, 'Chen Wei', 'Retail', 'Penang', 340.50, 1, 65.25, '2024-03-10', '2024-04-18', '2026-02-28', 0, 'Follow up'),\n  (4, 'Devi Kumar', 'SME', 'Ipoh', 5600.00, 7, 91.0, '2022-07-21', '2024-06-15', '2026-05-31', 1, NULL),\n  (5, 'Emily Tan', 'Corporate', 'Kuala Lumpur', 12040.25, 20, 84.75, '2023-02-14', '2024-03-30', '2026-01-31', 1, 'Key account'),\n  (6, 'Faisal Idris', 'Retail', 'Melaka', 780.00, 2, 58.0, '2024-05-05', '2024-05-25', '2026-06-30', 0, NULL),\n  (7, 'Grace Lim', 'SME', 'Penang', 3300.90, 5, 77.5, '2023-09-19', '2024-06-10', '2026-03-15', 1, 'Renewal'),\n  (8, 'Hafiz Omar', 'Corporate', 'Johor Bahru', 8750.00, 15, 69.0, '2022-12-01', '2024-02-28', '2026-04-20', 1, NULL),\n  (9, 'Iman Yusof', 'Retail', 'Ipoh', 210.40, 1, 95.0, '2024-06-01', '2024-06-20', '2026-07-31', 1, 'New'),\n  (10, 'Jason Ng', 'SME', 'Kuala Lumpur', 4600.00, 9, 80.25, '2023-04-27', '2024-05-11', '2026-05-15', 0, 'Overdue');\nSELECT * FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_1",
+        "type": "markdown",
+        "content": "## ASCII\nReturns the ASCII code value of the leftmost character.\n\nSignature: `ASCII(character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_1",
+        "type": "sql",
+        "content": "USE my_db;\n-- ASCII: Returns the ASCII code value of the leftmost character.\nSELECT id, ASCII(name) AS ex_1, ASCII(category) AS ex_2, ASCII(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_2",
+        "type": "markdown",
+        "content": "## CHAR\nConverts an integer ASCII code to a character.\n\nSignature: `CHAR(integer_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_2",
+        "type": "sql",
+        "content": "USE my_db;\n-- CHAR: Converts an integer ASCII code to a character.\nSELECT id, CHAR(65) AS ex_1, CHAR(66) AS ex_2, CHAR(67) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_3",
+        "type": "markdown",
+        "content": "## CHARINDEX\nReturns the starting position of a substring.\n\nSignature: `CHARINDEX(search_expression, expression[, start_location])`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_3",
+        "type": "sql",
+        "content": "USE my_db;\n-- CHARINDEX: Returns the starting position of a substring.\nSELECT id, CHARINDEX('a', name) AS ex_1, CHARINDEX('a', category) AS ex_2, CHARINDEX('a', city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_4",
+        "type": "markdown",
+        "content": "## CONCAT\nConcatenates values into a single string.\n\nSignature: `CONCAT(value1, value2, ...)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_4",
+        "type": "sql",
+        "content": "USE my_db;\n-- CONCAT: Concatenates values into a single string.\nSELECT id, CONCAT(name, '-', id) AS ex_1, CONCAT(category, '-', id) AS ex_2, CONCAT(city, '-', id) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_5",
+        "type": "markdown",
+        "content": "## CONCAT_WS\nConcatenates values using a separator.\n\nSignature: `CONCAT_WS(separator, value1, value2, ...)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_5",
+        "type": "sql",
+        "content": "USE my_db;\n-- CONCAT_WS: Concatenates values using a separator.\nSELECT id, CONCAT_WS('/', name, category) AS ex_1, CONCAT_WS('/', category, category) AS ex_2, CONCAT_WS('/', city, category) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_6",
+        "type": "markdown",
+        "content": "## DATALENGTH\nReturns the number of bytes used to represent an expression.\n\nSignature: `DATALENGTH(expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_6",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATALENGTH: Returns the number of bytes used to represent an expression.\nSELECT id, DATALENGTH(name) AS ex_1, DATALENGTH(category) AS ex_2, DATALENGTH(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_7",
+        "type": "markdown",
+        "content": "## DIFFERENCE\nCompares Soundex values and returns similarity score.\n\nSignature: `DIFFERENCE(character_expression, character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_7",
+        "type": "sql",
+        "content": "USE my_db;\n-- DIFFERENCE: Compares Soundex values and returns similarity score.\nSELECT id, DIFFERENCE(name, city) AS ex_1, DIFFERENCE(category, city) AS ex_2, DIFFERENCE(city, city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_8",
+        "type": "markdown",
+        "content": "## FORMAT\nReturns a value formatted with the specified format string.\n\nSignature: `FORMAT(value, format[, culture])`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_8",
+        "type": "sql",
+        "content": "USE my_db;\n-- FORMAT: Returns a value formatted with the specified format string.\nSELECT id, FORMAT(amount, 'N0') AS ex_1, FORMAT(amount, 'N1') AS ex_2, FORMAT(amount, 'N2') AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_9",
+        "type": "markdown",
+        "content": "## LEFT\nReturns the left part of a string.\n\nSignature: `LEFT(character_expression, integer_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_9",
+        "type": "sql",
+        "content": "USE my_db;\n-- LEFT: Returns the left part of a string.\nSELECT id, LEFT(name, 3) AS ex_1, LEFT(category, 3) AS ex_2, LEFT(city, 3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_10",
+        "type": "markdown",
+        "content": "## LEN\nReturns the number of characters in a string.\n\nSignature: `LEN(string_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_10",
+        "type": "sql",
+        "content": "USE my_db;\n-- LEN: Returns the number of characters in a string.\nSELECT id, LEN(name) AS ex_1, LEN(category) AS ex_2, LEN(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_11",
+        "type": "markdown",
+        "content": "## LOWER\nConverts string to lowercase.\n\nSignature: `LOWER(character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_11",
+        "type": "sql",
+        "content": "USE my_db;\n-- LOWER: Converts string to lowercase.\nSELECT id, LOWER(name) AS ex_1, LOWER(category) AS ex_2, LOWER(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_12",
+        "type": "markdown",
+        "content": "## LTRIM\nRemoves leading spaces from a string.\n\nSignature: `LTRIM(character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_12",
+        "type": "sql",
+        "content": "USE my_db;\n-- LTRIM: Removes leading spaces from a string.\nSELECT id, LTRIM(name) AS ex_1, LTRIM(category) AS ex_2, LTRIM(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_13",
+        "type": "markdown",
+        "content": "## NCHAR\nReturns the Unicode character specified by integer code.\n\nSignature: `NCHAR(integer_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_13",
+        "type": "sql",
+        "content": "USE my_db;\n-- NCHAR: Returns the Unicode character specified by integer code.\nSELECT id, NCHAR(9731) AS ex_1, NCHAR(9732) AS ex_2, NCHAR(9733) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_14",
+        "type": "markdown",
+        "content": "## PATINDEX\nReturns the starting position of a pattern.\n\nSignature: `PATINDEX(%pattern%, expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_14",
+        "type": "sql",
+        "content": "USE my_db;\n-- PATINDEX: Returns the starting position of a pattern.\nSELECT id, PATINDEX('%a%', name) AS ex_1, PATINDEX('%a%', category) AS ex_2, PATINDEX('%a%', city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_15",
+        "type": "markdown",
+        "content": "## QUOTENAME\nReturns a Unicode string with delimiters for identifiers.\n\nSignature: `QUOTENAME(character_string[, quote_character])`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_15",
+        "type": "sql",
+        "content": "USE my_db;\n-- QUOTENAME: Returns a Unicode string with delimiters for identifiers.\nSELECT id, QUOTENAME(name) AS ex_1, QUOTENAME(category) AS ex_2, QUOTENAME(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_16",
+        "type": "markdown",
+        "content": "## REPLACE\nReplaces occurrences of a substring.\n\nSignature: `REPLACE(string_expression, string_pattern, string_replacement)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_16",
+        "type": "sql",
+        "content": "USE my_db;\n-- REPLACE: Replaces occurrences of a substring.\nSELECT id, REPLACE(name, 'a', 'X') AS ex_1, REPLACE(category, 'a', 'X') AS ex_2, REPLACE(city, 'a', 'X') AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_17",
+        "type": "markdown",
+        "content": "## REPLICATE\nRepeats a string a specified number of times.\n\nSignature: `REPLICATE(string_expression, integer_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_17",
+        "type": "sql",
+        "content": "USE my_db;\n-- REPLICATE: Repeats a string a specified number of times.\nSELECT id, REPLICATE(SUBSTRING(name, 1, 1), 3) AS ex_1, REPLICATE(SUBSTRING(category, 1, 1), 3) AS ex_2, REPLICATE(SUBSTRING(city, 1, 1), 3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_18",
+        "type": "markdown",
+        "content": "## REVERSE\nReverses string characters.\n\nSignature: `REVERSE(string_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_18",
+        "type": "sql",
+        "content": "USE my_db;\n-- REVERSE: Reverses string characters.\nSELECT id, REVERSE(name) AS ex_1, REVERSE(category) AS ex_2, REVERSE(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_19",
+        "type": "markdown",
+        "content": "## RIGHT\nReturns the right part of a string.\n\nSignature: `RIGHT(character_expression, integer_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_19",
+        "type": "sql",
+        "content": "USE my_db;\n-- RIGHT: Returns the right part of a string.\nSELECT id, RIGHT(name, 3) AS ex_1, RIGHT(category, 3) AS ex_2, RIGHT(city, 3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_20",
+        "type": "markdown",
+        "content": "## RTRIM\nRemoves trailing spaces from a string.\n\nSignature: `RTRIM(character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_20",
+        "type": "sql",
+        "content": "USE my_db;\n-- RTRIM: Removes trailing spaces from a string.\nSELECT id, RTRIM(name) AS ex_1, RTRIM(category) AS ex_2, RTRIM(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_21",
+        "type": "markdown",
+        "content": "## SOUNDEX\nReturns the Soundex code of a string.\n\nSignature: `SOUNDEX(character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_21",
+        "type": "sql",
+        "content": "USE my_db;\n-- SOUNDEX: Returns the Soundex code of a string.\nSELECT id, SOUNDEX(name) AS ex_1, SOUNDEX(category) AS ex_2, SOUNDEX(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_22",
+        "type": "markdown",
+        "content": "## SPACE\nReturns a string of repeated spaces.\n\nSignature: `SPACE(integer_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_22",
+        "type": "sql",
+        "content": "USE my_db;\n-- SPACE: Returns a string of repeated spaces.\nSELECT id, ('[' || SPACE(1) || ']') AS ex_1, ('[' || SPACE(2) || ']') AS ex_2, ('[' || SPACE(3) || ']') AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_23",
+        "type": "markdown",
+        "content": "## STR\nConverts numeric expression to character data.\n\nSignature: `STR(float_expression[, length[, decimal]])`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_23",
+        "type": "sql",
+        "content": "USE my_db;\n-- STR: Converts numeric expression to character data.\nSELECT id, STR(amount) AS ex_1, STR(qty) AS ex_2, STR(score) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_24",
+        "type": "markdown",
+        "content": "## STUFF\nDeletes part of a string and inserts another string.\n\nSignature: `STUFF(character_expression, start, length, replace_with_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_24",
+        "type": "sql",
+        "content": "USE my_db;\n-- STUFF: Deletes part of a string and inserts another string.\nSELECT id, STUFF(name, 1, 2, '**') AS ex_1, STUFF(category, 1, 2, '**') AS ex_2, STUFF(city, 1, 2, '**') AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_25",
+        "type": "markdown",
+        "content": "## SUBSTRING\nExtracts part of a string from a position.\n\nSignature: `SUBSTRING(expression, start, length)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_25",
+        "type": "sql",
+        "content": "USE my_db;\n-- SUBSTRING: Extracts part of a string from a position.\nSELECT id, SUBSTRING(name, 1, 3) AS ex_1, SUBSTRING(category, 1, 3) AS ex_2, SUBSTRING(city, 1, 3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_26",
+        "type": "markdown",
+        "content": "## TRANSLATE\nReplaces characters one-to-one from source to target set.\n\nSignature: `TRANSLATE(inputString, characters, translations)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_26",
+        "type": "sql",
+        "content": "USE my_db;\n-- TRANSLATE: Replaces characters one-to-one from source to target set.\nSELECT id, TRANSLATE(name, 'ae', 'AE') AS ex_1, TRANSLATE(category, 'ae', 'AE') AS ex_2, TRANSLATE(city, 'ae', 'AE') AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_27",
+        "type": "markdown",
+        "content": "## TRIM\nRemoves leading and trailing spaces or characters.\n\nSignature: `TRIM([characters FROM] string)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_27",
+        "type": "sql",
+        "content": "USE my_db;\n-- TRIM: Removes leading and trailing spaces or characters.\nSELECT id, TRIM(name) AS ex_1, TRIM(category) AS ex_2, TRIM(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_28",
+        "type": "markdown",
+        "content": "## UNICODE\nReturns Unicode integer value of first character.\n\nSignature: `UNICODE(ncharacter_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_28",
+        "type": "sql",
+        "content": "USE my_db;\n-- UNICODE: Returns Unicode integer value of first character.\nSELECT id, UNICODE(name) AS ex_1, UNICODE(category) AS ex_2, UNICODE(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_29",
+        "type": "markdown",
+        "content": "## UPPER\nConverts string to uppercase.\n\nSignature: `UPPER(character_expression)`\n\n3 runnable examples over `my_db.demo` (string):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_29",
+        "type": "sql",
+        "content": "USE my_db;\n-- UPPER: Converts string to uppercase.\nSELECT id, UPPER(name) AS ex_1, UPPER(category) AS ex_2, UPPER(city) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_30",
+        "type": "markdown",
+        "content": "## ABS\nReturns absolute value.\n\nSignature: `ABS(number)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_30",
+        "type": "sql",
+        "content": "USE my_db;\n-- ABS: Returns absolute value.\nSELECT id, ABS(amount) AS ex_1, ABS(qty) AS ex_2, ABS(score) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_31",
+        "type": "markdown",
+        "content": "## ACOS\nReturns arccosine in radians.\n\nSignature: `ACOS(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_31",
+        "type": "sql",
+        "content": "USE my_db;\n-- ACOS: Returns arccosine in radians.\nSELECT id, ACOS(1) AS ex_1, ACOS(0.5) AS ex_2, ACOS(0) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_32",
+        "type": "markdown",
+        "content": "## ASIN\nReturns arcsine in radians.\n\nSignature: `ASIN(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_32",
+        "type": "sql",
+        "content": "USE my_db;\n-- ASIN: Returns arcsine in radians.\nSELECT id, ASIN(1) AS ex_1, ASIN(0.5) AS ex_2, ASIN(0) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_33",
+        "type": "markdown",
+        "content": "## ATAN\nReturns arctangent in radians.\n\nSignature: `ATAN(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_33",
+        "type": "sql",
+        "content": "USE my_db;\n-- ATAN: Returns arctangent in radians.\nSELECT id, ATAN(0.5) AS ex_1, ATAN(1) AS ex_2, ATAN(2) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_34",
+        "type": "markdown",
+        "content": "## ATN2\nReturns arctangent of Y/X in radians.\n\nSignature: `ATN2(float_expression_y, float_expression_x)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_34",
+        "type": "sql",
+        "content": "USE my_db;\n-- ATN2: Returns arctangent of Y/X in radians.\nSELECT id, ATN2(1.0, 2.0) AS ex_1, ATN2(2.0, 2.0) AS ex_2, ATN2(3.0, 2.0) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_35",
+        "type": "markdown",
+        "content": "## AVG\nReturns average value.\n\nSignature: `AVG([ALL|DISTINCT] expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_35",
+        "type": "sql",
+        "content": "USE my_db;\n-- AVG: Returns average value.\nSELECT AVG(amount) AS by_amount, AVG(qty) AS by_qty, AVG(score) AS by_score FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_36",
+        "type": "markdown",
+        "content": "## CEILING\nReturns smallest integer >= expression.\n\nSignature: `CEILING(number)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_36",
+        "type": "sql",
+        "content": "USE my_db;\n-- CEILING: Returns smallest integer >= expression.\nSELECT id, CEILING(amount) AS ex_1, CEILING(qty) AS ex_2, CEILING(score) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_37",
+        "type": "markdown",
+        "content": "## COUNT\nReturns row count.\n\nSignature: `COUNT(*) | COUNT(expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_37",
+        "type": "sql",
+        "content": "USE my_db;\n-- COUNT: Returns row count.\nSELECT COUNT(*) AS all_rows, COUNT(notes) AS non_null_notes, COUNT(DISTINCT category) AS distinct_categories FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_38",
+        "type": "markdown",
+        "content": "## COS\nReturns cosine in radians.\n\nSignature: `COS(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_38",
+        "type": "sql",
+        "content": "USE my_db;\n-- COS: Returns cosine in radians.\nSELECT id, COS(0) AS ex_1, COS(1) AS ex_2, COS(2) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_39",
+        "type": "markdown",
+        "content": "## COT\nReturns cotangent in radians.\n\nSignature: `COT(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_39",
+        "type": "sql",
+        "content": "USE my_db;\n-- COT: Returns cotangent in radians.\nSELECT id, COT(1) AS ex_1, COT(2) AS ex_2, COT(3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_40",
+        "type": "markdown",
+        "content": "## DEGREES\nConverts radians to degrees.\n\nSignature: `DEGREES(numeric_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_40",
+        "type": "sql",
+        "content": "USE my_db;\n-- DEGREES: Converts radians to degrees.\nSELECT id, DEGREES(1) AS ex_1, DEGREES(2) AS ex_2, DEGREES(3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_41",
+        "type": "markdown",
+        "content": "## EXP\nReturns e raised to expression.\n\nSignature: `EXP(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_41",
+        "type": "sql",
+        "content": "USE my_db;\n-- EXP: Returns e raised to expression.\nSELECT id, EXP(1) AS ex_1, EXP(2) AS ex_2, EXP(3) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_42",
+        "type": "markdown",
+        "content": "## FLOOR\nReturns largest integer <= expression.\n\nSignature: `FLOOR(number)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_42",
+        "type": "sql",
+        "content": "USE my_db;\n-- FLOOR: Returns largest integer <= expression.\nSELECT id, FLOOR(amount) AS ex_1, FLOOR(qty) AS ex_2, FLOOR(score) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_43",
+        "type": "markdown",
+        "content": "## LOG\nReturns natural logarithm or logarithm with base.\n\nSignature: `LOG(float_expression[, base])`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_43",
+        "type": "sql",
+        "content": "USE my_db;\n-- LOG: Returns natural logarithm or logarithm with base.\nSELECT id, LOG(amount + 1) AS ex_1, LOG(qty + 1) AS ex_2, LOG(score + 1) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_44",
+        "type": "markdown",
+        "content": "## LOG10\nReturns base-10 logarithm.\n\nSignature: `LOG10(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_44",
+        "type": "sql",
+        "content": "USE my_db;\n-- LOG10: Returns base-10 logarithm.\nSELECT id, LOG10(amount + 1) AS ex_1, LOG10(qty + 1) AS ex_2, LOG10(score + 1) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_45",
+        "type": "markdown",
+        "content": "## MAX\nReturns maximum value.\n\nSignature: `MAX(expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_45",
+        "type": "sql",
+        "content": "USE my_db;\n-- MAX: Returns maximum value.\nSELECT MAX(amount) AS by_amount, MAX(qty) AS by_qty, MAX(score) AS by_score FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_46",
+        "type": "markdown",
+        "content": "## MIN\nReturns minimum value.\n\nSignature: `MIN(expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_46",
+        "type": "sql",
+        "content": "USE my_db;\n-- MIN: Returns minimum value.\nSELECT MIN(amount) AS by_amount, MIN(qty) AS by_qty, MIN(score) AS by_score FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_47",
+        "type": "markdown",
+        "content": "## PI\nReturns the PI constant.\n\nSignature: `PI()`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_47",
+        "type": "sql",
+        "content": "USE my_db;\n-- PI: Returns the PI constant.\nSELECT PI() AS value, name FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_48",
+        "type": "markdown",
+        "content": "## POWER\nReturns expression raised to power y.\n\nSignature: `POWER(float_expression, y)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_48",
+        "type": "sql",
+        "content": "USE my_db;\n-- POWER: Returns expression raised to power y.\nSELECT id, POWER(amount, 2) AS ex_1, POWER(qty, 2) AS ex_2, POWER(score, 2) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_49",
+        "type": "markdown",
+        "content": "## RADIANS\nConverts degrees to radians.\n\nSignature: `RADIANS(numeric_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_49",
+        "type": "sql",
+        "content": "USE my_db;\n-- RADIANS: Converts degrees to radians.\nSELECT id, RADIANS(30) AS ex_1, RADIANS(60) AS ex_2, RADIANS(90) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_50",
+        "type": "markdown",
+        "content": "## RAND\nReturns pseudo-random float from 0 to 1.\n\nSignature: `RAND([seed])`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_50",
+        "type": "sql",
+        "content": "USE my_db;\n-- RAND: Returns pseudo-random float from 0 to 1.\nSELECT RAND() AS value, name FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_51",
+        "type": "markdown",
+        "content": "## ROUND\nRounds numeric expression.\n\nSignature: `ROUND(numeric_expression, length[, function])`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_51",
+        "type": "sql",
+        "content": "USE my_db;\n-- ROUND: Rounds numeric expression.\nSELECT id, ROUND(amount, 1) AS ex_1, ROUND(qty, 1) AS ex_2, ROUND(score, 1) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_52",
+        "type": "markdown",
+        "content": "## SIGN\nReturns sign: -1, 0, or 1.\n\nSignature: `SIGN(numeric_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_52",
+        "type": "sql",
+        "content": "USE my_db;\n-- SIGN: Returns sign: -1, 0, or 1.\nSELECT id, SIGN(amount - 100) AS ex_1, SIGN(qty - 100) AS ex_2, SIGN(score - 100) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_53",
+        "type": "markdown",
+        "content": "## SIN\nReturns sine in radians.\n\nSignature: `SIN(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_53",
+        "type": "sql",
+        "content": "USE my_db;\n-- SIN: Returns sine in radians.\nSELECT id, SIN(0) AS ex_1, SIN(1) AS ex_2, SIN(2) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_54",
+        "type": "markdown",
+        "content": "## SQRT\nReturns square root.\n\nSignature: `SQRT(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_54",
+        "type": "sql",
+        "content": "USE my_db;\n-- SQRT: Returns square root.\nSELECT id, SQRT(ABS(amount)) AS ex_1, SQRT(ABS(qty)) AS ex_2, SQRT(ABS(score)) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_55",
+        "type": "markdown",
+        "content": "## SQUARE\nReturns square of expression.\n\nSignature: `SQUARE(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_55",
+        "type": "sql",
+        "content": "USE my_db;\n-- SQUARE: Returns square of expression.\nSELECT id, SQUARE(amount) AS ex_1, SQUARE(qty) AS ex_2, SQUARE(score) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_56",
+        "type": "markdown",
+        "content": "## SUM\nReturns sum of values.\n\nSignature: `SUM([ALL|DISTINCT] expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_56",
+        "type": "sql",
+        "content": "USE my_db;\n-- SUM: Returns sum of values.\nSELECT SUM(amount) AS by_amount, SUM(qty) AS by_qty, SUM(score) AS by_score FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_57",
+        "type": "markdown",
+        "content": "## TAN\nReturns tangent in radians.\n\nSignature: `TAN(float_expression)`\n\n3 runnable examples over `my_db.demo` (numeric):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_57",
+        "type": "sql",
+        "content": "USE my_db;\n-- TAN: Returns tangent in radians.\nSELECT id, TAN(amount) AS ex_1, TAN(qty) AS ex_2, TAN(score) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_58",
+        "type": "markdown",
+        "content": "## CURRENT_TIMESTAMP\nReturns current date and time.\n\nSignature: `CURRENT_TIMESTAMP`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_58",
+        "type": "sql",
+        "content": "USE my_db;\n-- CURRENT_TIMESTAMP: Returns current date and time.\nSELECT CURRENT_TIMESTAMP AS value, name FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_59",
+        "type": "markdown",
+        "content": "## DATEADD\nAdds interval to date.\n\nSignature: `DATEADD(datepart, number, date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_59",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATEADD: Adds interval to date.\nSELECT id, DATEADD('month', 1, created_at) AS ex_1, DATEADD('month', 1, updated_at) AS ex_2, DATEADD('month', 1, due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_60",
+        "type": "markdown",
+        "content": "## DATEDIFF\nReturns date difference for given datepart.\n\nSignature: `DATEDIFF(datepart, startdate, enddate)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_60",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATEDIFF: Returns date difference for given datepart.\nSELECT id, DATEDIFF('day', created_at, due_date) AS ex_1, DATEDIFF('day', updated_at, due_date) AS ex_2, DATEDIFF('day', due_date, due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_61",
+        "type": "markdown",
+        "content": "## DATEFROMPARTS\nBuilds a date from year/month/day.\n\nSignature: `DATEFROMPARTS(year, month, day)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_61",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATEFROMPARTS: Builds a date from year/month/day.\nSELECT id, DATEFROMPARTS(2026, 1, 15) AS ex_1, DATEFROMPARTS(2026, 2, 15) AS ex_2, DATEFROMPARTS(2026, 3, 15) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_62",
+        "type": "markdown",
+        "content": "## DATENAME\nReturns character string for datepart.\n\nSignature: `DATENAME(datepart, date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_62",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATENAME: Returns character string for datepart.\nSELECT id, DATENAME('month', created_at) AS ex_1, DATENAME('month', updated_at) AS ex_2, DATENAME('month', due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_63",
+        "type": "markdown",
+        "content": "## DATEPART\nReturns integer datepart.\n\nSignature: `DATEPART(datepart, date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_63",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATEPART: Returns integer datepart.\nSELECT id, DATEPART('year', created_at) AS ex_1, DATEPART('year', updated_at) AS ex_2, DATEPART('year', due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_64",
+        "type": "markdown",
+        "content": "## DAY\nReturns day of month.\n\nSignature: `DAY(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_64",
+        "type": "sql",
+        "content": "USE my_db;\n-- DAY: Returns day of month.\nSELECT id, DAY(created_at) AS ex_1, DAY(updated_at) AS ex_2, DAY(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_65",
+        "type": "markdown",
+        "content": "## GETDATE\nReturns current server date/time.\n\nSignature: `GETDATE()`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_65",
+        "type": "sql",
+        "content": "USE my_db;\n-- GETDATE: Returns current server date/time.\nSELECT GETDATE() AS value, name FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_66",
+        "type": "markdown",
+        "content": "## GETUTCDATE\nReturns current UTC date/time.\n\nSignature: `GETUTCDATE()`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_66",
+        "type": "sql",
+        "content": "USE my_db;\n-- GETUTCDATE: Returns current UTC date/time.\nSELECT GETUTCDATE() AS value, name FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_67",
+        "type": "markdown",
+        "content": "## ISDATE\nReturns whether expression can be interpreted as date.\n\nSignature: `ISDATE(expression)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_67",
+        "type": "sql",
+        "content": "USE my_db;\n-- ISDATE: Returns whether expression can be interpreted as date.\nSELECT id, ISDATE(created_at) AS ex_1, ISDATE(updated_at) AS ex_2, ISDATE(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_68",
+        "type": "markdown",
+        "content": "## MONTH\nReturns month part as integer.\n\nSignature: `MONTH(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_68",
+        "type": "sql",
+        "content": "USE my_db;\n-- MONTH: Returns month part as integer.\nSELECT id, MONTH(created_at) AS ex_1, MONTH(updated_at) AS ex_2, MONTH(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_69",
+        "type": "markdown",
+        "content": "## SYSDATETIME\nReturns current date/time with higher precision.\n\nSignature: `SYSDATETIME()`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_69",
+        "type": "sql",
+        "content": "USE my_db;\n-- SYSDATETIME: Returns current date/time with higher precision.\nSELECT SYSDATETIME() AS value, name FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_70",
+        "type": "markdown",
+        "content": "## YEAR\nReturns year part as integer.\n\nSignature: `YEAR(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_70",
+        "type": "sql",
+        "content": "USE my_db;\n-- YEAR: Returns year part as integer.\nSELECT id, YEAR(created_at) AS ex_1, YEAR(updated_at) AS ex_2, YEAR(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_71",
+        "type": "markdown",
+        "content": "## TO_DATE\nParses a string/serial into an ISO date. Optional Oracle-style format mask (YYYY, MM, DD, MON).\n\nSignature: `TO_DATE(value[, format])`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_71",
+        "type": "sql",
+        "content": "USE my_db;\n-- TO_DATE: Parses a string/serial into an ISO date. Optional Oracle-style format mask (YYYY, MM, DD, MON).\nSELECT id, TO_DATE(created_at) AS ex_1, TO_DATE(updated_at) AS ex_2, TO_DATE(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_72",
+        "type": "markdown",
+        "content": "## TO_CHAR\nFormats a date or number as text using a format mask.\n\nSignature: `TO_CHAR(value, format)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_72",
+        "type": "sql",
+        "content": "USE my_db;\n-- TO_CHAR: Formats a date or number as text using a format mask.\nSELECT id, TO_CHAR(created_at, 'YYYY-MM-DD') AS ex_1, TO_CHAR(updated_at, 'YYYY-MM-DD') AS ex_2, TO_CHAR(due_date, 'YYYY-MM-DD') AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_73",
+        "type": "markdown",
+        "content": "## DATEADD\nAdds an interval to a date.\n\nSignature: `DATEADD(datepart, number, date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_73",
+        "type": "sql",
+        "content": "USE my_db;\n-- DATEADD: Adds an interval to a date.\nSELECT id, DATEADD('month', 1, created_at) AS ex_1, DATEADD('month', 1, updated_at) AS ex_2, DATEADD('month', 1, due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_74",
+        "type": "markdown",
+        "content": "## ADD_MONTHS\nAdds n months to a date (Oracle style).\n\nSignature: `ADD_MONTHS(date, n)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_74",
+        "type": "sql",
+        "content": "USE my_db;\n-- ADD_MONTHS: Adds n months to a date (Oracle style).\nSELECT id, ADD_MONTHS(created_at, 2) AS ex_1, ADD_MONTHS(updated_at, 2) AS ex_2, ADD_MONTHS(due_date, 2) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_75",
+        "type": "markdown",
+        "content": "## LAST_DAY\nReturns the last day of the month for the given date.\n\nSignature: `LAST_DAY(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_75",
+        "type": "sql",
+        "content": "USE my_db;\n-- LAST_DAY: Returns the last day of the month for the given date.\nSELECT id, LAST_DAY(created_at) AS ex_1, LAST_DAY(updated_at) AS ex_2, LAST_DAY(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_76",
+        "type": "markdown",
+        "content": "## EOMONTH\nReturns the last day of the month, with optional offset.\n\nSignature: `EOMONTH(date[, month_offset])`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_76",
+        "type": "sql",
+        "content": "USE my_db;\n-- EOMONTH: Returns the last day of the month, with optional offset.\nSELECT id, EOMONTH(created_at) AS ex_1, EOMONTH(updated_at) AS ex_2, EOMONTH(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_77",
+        "type": "markdown",
+        "content": "## MONTHNAME\nReturns the full month name (e.g. April).\n\nSignature: `MONTHNAME(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_77",
+        "type": "sql",
+        "content": "USE my_db;\n-- MONTHNAME: Returns the full month name (e.g. April).\nSELECT id, MONTHNAME(created_at) AS ex_1, MONTHNAME(updated_at) AS ex_2, MONTHNAME(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_78",
+        "type": "markdown",
+        "content": "## DAYNAME\nReturns the full weekday name (e.g. Wednesday).\n\nSignature: `DAYNAME(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_78",
+        "type": "sql",
+        "content": "USE my_db;\n-- DAYNAME: Returns the full weekday name (e.g. Wednesday).\nSELECT id, DAYNAME(created_at) AS ex_1, DAYNAME(updated_at) AS ex_2, DAYNAME(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_79",
+        "type": "markdown",
+        "content": "## QUARTER\nReturns the calendar quarter (1-4).\n\nSignature: `QUARTER(date)`\n\n3 runnable examples over `my_db.demo` (date):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_79",
+        "type": "sql",
+        "content": "USE my_db;\n-- QUARTER: Returns the calendar quarter (1-4).\nSELECT id, QUARTER(created_at) AS ex_1, QUARTER(updated_at) AS ex_2, QUARTER(due_date) AS ex_3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_80",
+        "type": "markdown",
+        "content": "## CAST\nConverts expression to target type.\n\nSignature: `CAST(expression AS data_type)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_80",
+        "type": "sql",
+        "content": "USE my_db;\n-- CAST: Converts expression to target type.\nSELECT CAST(amount AS INTEGER) AS to_int, CAST(qty AS REAL) AS to_real, CAST(id AS TEXT) AS to_text FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_81",
+        "type": "markdown",
+        "content": "## COALESCE\nReturns first non-null expression.\n\nSignature: `COALESCE(value1, value2, ...)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_81",
+        "type": "sql",
+        "content": "USE my_db;\n-- COALESCE: Returns first non-null expression.\nSELECT COALESCE(notes, 'n/a') AS c1, COALESCE(notes, city) AS c2, COALESCE(NULL, category, 'x') AS c3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_82",
+        "type": "markdown",
+        "content": "## CONVERT\nConverts expression to target type.\n\nSignature: `CONVERT(data_type, expression[, style])`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_82",
+        "type": "sql",
+        "content": "USE my_db;\n-- CONVERT: Converts expression to target type.\nSELECT CONVERT(INTEGER, amount) AS c1, CONVERT(TEXT, qty) AS c2, CONVERT(TEXT, created_at) AS c3 FROM demo LIMIT 5; -- CONVERT support varies by engine",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_83",
+        "type": "markdown",
+        "content": "## CURRENT_USER\nReturns current user name.\n\nSignature: `CURRENT_USER`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_83",
+        "type": "sql",
+        "content": "USE my_db;\n-- CURRENT_USER: Returns current user name.\n-- CURRENT_USER is a SQL Server keyword (no equivalent in SQLite). Use USER_NAME():\nSELECT USER_NAME() AS current_user;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_84",
+        "type": "markdown",
+        "content": "## IIF\nReturns one of two values based on condition.\n\nSignature: `IIF(boolean_expression, true_value, false_value)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_84",
+        "type": "sql",
+        "content": "USE my_db;\n-- IIF: Returns one of two values based on condition.\nSELECT IIF(score >= 80, 'HIGH', 'LOW') AS c1, IIF(amount > 5000, 'BIG', 'SMALL') AS c2, IIF(is_active = 1, 'YES', 'NO') AS c3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_85",
+        "type": "markdown",
+        "content": "## ISNULL\nReplaces NULL with replacement value.\n\nSignature: `ISNULL(check_expression, replacement_value)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_85",
+        "type": "sql",
+        "content": "USE my_db;\n-- ISNULL: Replaces NULL with replacement value.\nSELECT ISNULL(notes, 'n/a') AS c1, ISNULL(notes, city) AS c2, ISNULL(NULL, 0) AS c3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_86",
+        "type": "markdown",
+        "content": "## ISNUMERIC\nReturns whether expression is a valid numeric type.\n\nSignature: `ISNUMERIC(expression)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_86",
+        "type": "sql",
+        "content": "USE my_db;\n-- ISNUMERIC: Returns whether expression is a valid numeric type.\nSELECT ISNUMERIC(amount) AS c1, ISNUMERIC(name) AS c2, ISNUMERIC(qty) AS c3 FROM demo LIMIT 5; -- ISNUMERIC support varies by engine",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_87",
+        "type": "markdown",
+        "content": "## NULLIF\nReturns NULL when two expressions are equal.\n\nSignature: `NULLIF(expression1, expression2)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_87",
+        "type": "sql",
+        "content": "USE my_db;\n-- NULLIF: Returns NULL when two expressions are equal.\nSELECT NULLIF(category, 'Retail') AS c1, NULLIF(qty, 1) AS c2, NULLIF(city, 'Ipoh') AS c3 FROM demo LIMIT 5;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_88",
+        "type": "markdown",
+        "content": "## SESSION_USER\nReturns session user.\n\nSignature: `SESSION_USER`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_88",
+        "type": "sql",
+        "content": "USE my_db;\n-- SESSION_USER: Returns session user.\n-- SESSION_USER is a SQL Server keyword (no equivalent in SQLite). Use USER_NAME():\nSELECT USER_NAME() AS session_user;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_89",
+        "type": "markdown",
+        "content": "## SESSIONPROPERTY\nReturns session-level setting value.\n\nSignature: `SESSIONPROPERTY(option)`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_89",
+        "type": "sql",
+        "content": "USE my_db;\n-- SESSIONPROPERTY: Returns session-level setting value.\n-- SESSIONPROPERTY is SQL Server-specific and not supported in this SQLite workspace.\nSELECT NULL AS ansi_nulls;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_90",
+        "type": "markdown",
+        "content": "## SYSTEM_USER\nReturns system user name.\n\nSignature: `SYSTEM_USER`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_90",
+        "type": "sql",
+        "content": "USE my_db;\n-- SYSTEM_USER: Returns system user name.\n-- SYSTEM_USER is a SQL Server keyword (no equivalent in SQLite). Use USER_NAME():\nSELECT USER_NAME() AS system_user;",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_md_91",
+        "type": "markdown",
+        "content": "## USER_NAME\nReturns user name from user identifier.\n\nSignature: `USER_NAME([id])`\n\n3 runnable examples over `my_db.demo` (advanced):",
+        "result": null
+      },
+      {
+        "id": "sql_functions_reference_sql_91",
+        "type": "sql",
+        "content": "USE my_db;\n-- USER_NAME: Returns user name from user identifier.\nSELECT USER_NAME() AS user_name;",
+        "result": null
+      }
+    ]
+  },
+  {
+    "id": "system_sql_tutorial_w3schools",
+    "name": "W3Schools SQL Tutorial Syntax (Examples)",
+    "createdAt": "02/07/2026",
+    "system": true,
+    "version": 3,
+    "cells": [
+      {
+        "id": "sql_tutorial_reference_intro_md",
+        "type": "markdown",
+        "content": "# sql tutorial reference\nGenerated from the W3Schools SQL reference, with runnable examples over a demo table.\n\n**Run the Setup cell below first** — it creates `my_db` and the `demo` table that every example uses.",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_setup_md",
+        "type": "markdown",
+        "content": "## ⚙️ Setup — demo database & table\nCreates `my_db.demo` with 10 sample rows spanning text, numeric and date columns (plus NULLs).",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_setup_sql",
+        "type": "sql",
+        "content": "-- ⚙️ SETUP — run this cell first.\n-- Creates my_db and the demo table that every example below uses.\nCREATE DATABASE IF NOT EXISTS my_db;\nUSE my_db;\nDROP TABLE IF EXISTS demo;\nCREATE TABLE demo (\n  id INTEGER, name TEXT, category TEXT, city TEXT,\n  amount REAL, qty INTEGER, score REAL,\n  created_at DATE, updated_at DATE, due_date DATE,\n  is_active INTEGER, notes TEXT\n);\nINSERT INTO demo (id, name, category, city, amount, qty, score, created_at, updated_at, due_date, is_active, notes) VALUES\n  (1, 'Aisyah Rahman', 'Retail', 'Kuala Lumpur', 1520.75, 3, 88.5, '2024-01-15', '2024-06-01', '2026-03-31', 1, 'VIP client'),\n  (2, 'Budi Santoso', 'Corporate', 'Johor Bahru', 9800.00, 12, 72.0, '2023-11-02', '2024-05-20', '2026-04-30', 1, NULL),\n  (3, 'Chen Wei', 'Retail', 'Penang', 340.50, 1, 65.25, '2024-03-10', '2024-04-18', '2026-02-28', 0, 'Follow up'),\n  (4, 'Devi Kumar', 'SME', 'Ipoh', 5600.00, 7, 91.0, '2022-07-21', '2024-06-15', '2026-05-31', 1, NULL),\n  (5, 'Emily Tan', 'Corporate', 'Kuala Lumpur', 12040.25, 20, 84.75, '2023-02-14', '2024-03-30', '2026-01-31', 1, 'Key account'),\n  (6, 'Faisal Idris', 'Retail', 'Melaka', 780.00, 2, 58.0, '2024-05-05', '2024-05-25', '2026-06-30', 0, NULL),\n  (7, 'Grace Lim', 'SME', 'Penang', 3300.90, 5, 77.5, '2023-09-19', '2024-06-10', '2026-03-15', 1, 'Renewal'),\n  (8, 'Hafiz Omar', 'Corporate', 'Johor Bahru', 8750.00, 15, 69.0, '2022-12-01', '2024-02-28', '2026-04-20', 1, NULL),\n  (9, 'Iman Yusof', 'Retail', 'Ipoh', 210.40, 1, 95.0, '2024-06-01', '2024-06-20', '2026-07-31', 1, 'New'),\n  (10, 'Jason Ng', 'SME', 'Kuala Lumpur', 4600.00, 9, 80.25, '2023-04-27', '2024-05-11', '2026-05-15', 0, 'Overdue');\nSELECT * FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_1",
+        "type": "markdown",
+        "content": "## SQL HOME\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_1",
+        "type": "sql",
+        "content": "-- SQL HOME\nSELECT 1 AS example;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_2",
+        "type": "markdown",
+        "content": "## SQL Intro\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_2",
+        "type": "sql",
+        "content": "-- SQL Intro\nSELECT 1 AS example;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_3",
+        "type": "markdown",
+        "content": "## SQL Syntax\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_3",
+        "type": "sql",
+        "content": "-- SQL Syntax\nSELECT 1 AS example;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_4",
+        "type": "markdown",
+        "content": "## SQL Select\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_4",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo;\nSELECT id, name, city FROM demo;\nSELECT name, amount FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_5",
+        "type": "markdown",
+        "content": "## SQL Select Distinct\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_5",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT DISTINCT category FROM demo;\nSELECT DISTINCT city FROM demo;\nSELECT DISTINCT category, city FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_6",
+        "type": "markdown",
+        "content": "## SQL Where\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_6",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE category = 'Retail';\nSELECT * FROM demo WHERE amount > 2000;\nSELECT * FROM demo WHERE city = 'Kuala Lumpur';",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_7",
+        "type": "markdown",
+        "content": "## SQL Order By\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_7",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo ORDER BY amount DESC;\nSELECT * FROM demo ORDER BY created_at ASC;\nSELECT * FROM demo ORDER BY name;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_8",
+        "type": "markdown",
+        "content": "## SQL And\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_8",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE category = 'Retail' AND amount > 1000;\nSELECT * FROM demo WHERE is_active = 1 AND score >= 80;\nSELECT * FROM demo WHERE city = 'Kuala Lumpur' AND qty > 2;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_9",
+        "type": "markdown",
+        "content": "## SQL Or\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_9",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE category = 'Retail' OR category = 'Corporate';\nSELECT * FROM demo WHERE amount > 5000 OR score > 85;\nSELECT * FROM demo WHERE city = 'Ipoh' OR city = 'Penang';",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_10",
+        "type": "markdown",
+        "content": "## SQL Not\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_10",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE NOT category = 'Retail';\nSELECT * FROM demo WHERE NOT amount > 2000;\nSELECT * FROM demo WHERE notes IS NOT NULL;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_11",
+        "type": "markdown",
+        "content": "## SQL Insert Into\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_11",
+        "type": "sql",
+        "content": "USE my_db;\nINSERT INTO demo (id, name, category, city, amount, qty, score, created_at) VALUES (101, 'New Client', 'Retail', 'Ipoh', 500.00, 1, 70.0, '2026-01-01');\nSELECT * FROM demo WHERE id = 101;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_12",
+        "type": "markdown",
+        "content": "## SQL Null Values\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_12",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE notes IS NULL;\nSELECT * FROM demo WHERE notes IS NOT NULL;\nSELECT id, COALESCE(notes, 'n/a') AS notes2 FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_13",
+        "type": "markdown",
+        "content": "## SQL Update\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_13",
+        "type": "sql",
+        "content": "USE my_db;\nUPDATE demo SET city = 'Melaka' WHERE id = 1;\nSELECT * FROM demo WHERE id = 1;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_14",
+        "type": "markdown",
+        "content": "## SQL Delete\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_14",
+        "type": "sql",
+        "content": "USE my_db;\nDELETE FROM demo WHERE id = 101;\nSELECT COUNT(*) AS remaining FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_15",
+        "type": "markdown",
+        "content": "## SQL Select Top\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_15",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo LIMIT 3;\nSELECT * FROM demo ORDER BY amount DESC LIMIT 5;\nSELECT name, score FROM demo ORDER BY score DESC LIMIT 2;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_16",
+        "type": "markdown",
+        "content": "## SQL Aggregate Functions\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_16",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT COUNT(*) AS rows, AVG(score) AS avg_score, SUM(amount) AS total FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_17",
+        "type": "markdown",
+        "content": "## SQL Min()\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_17",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT MIN(amount) AS min_amount FROM demo;\nSELECT MIN(qty) AS min_qty FROM demo;\nSELECT MIN(created_at) AS earliest FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_18",
+        "type": "markdown",
+        "content": "## SQL Max()\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_18",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT MAX(amount) AS max_amount FROM demo;\nSELECT MAX(qty) AS max_qty FROM demo;\nSELECT MAX(created_at) AS latest FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_19",
+        "type": "markdown",
+        "content": "## SQL Count()\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_19",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT COUNT(*) AS total FROM demo;\nSELECT COUNT(notes) AS with_notes FROM demo;\nSELECT COUNT(DISTINCT category) AS categories FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_20",
+        "type": "markdown",
+        "content": "## SQL Sum()\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_20",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT SUM(amount) AS total_amount FROM demo;\nSELECT SUM(qty) AS total_qty FROM demo;\nSELECT category, SUM(amount) AS total FROM demo GROUP BY category;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_21",
+        "type": "markdown",
+        "content": "## SQL Avg()\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_21",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT AVG(amount) AS avg_amount FROM demo;\nSELECT AVG(score) AS avg_score FROM demo;\nSELECT category, AVG(score) AS avg_score FROM demo GROUP BY category;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_22",
+        "type": "markdown",
+        "content": "## SQL Like\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_22",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE name LIKE 'A%';\nSELECT * FROM demo WHERE city LIKE '%a%';\nSELECT * FROM demo WHERE category LIKE 'Ret%';",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_23",
+        "type": "markdown",
+        "content": "## SQL Wildcards\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_23",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE city LIKE '%lumpur%';\nSELECT * FROM demo WHERE name LIKE '_a%';\nSELECT * FROM demo WHERE category LIKE 'S%';",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_24",
+        "type": "markdown",
+        "content": "## SQL In\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_24",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE category IN ('Retail', 'Corporate');\nSELECT * FROM demo WHERE city IN ('Ipoh', 'Penang');\nSELECT * FROM demo WHERE qty IN (1, 2, 3);",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_25",
+        "type": "markdown",
+        "content": "## SQL Between\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_25",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE amount BETWEEN 1000 AND 5000;\nSELECT * FROM demo WHERE score BETWEEN 70 AND 90;\nSELECT * FROM demo WHERE created_at BETWEEN '2024-01-01' AND '2024-12-31';",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_26",
+        "type": "markdown",
+        "content": "## SQL Aliases\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_26",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT name AS client, amount AS balance FROM demo;\nSELECT category AS segment, COUNT(*) AS n FROM demo GROUP BY category;\nSELECT id, score AS rating FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_27",
+        "type": "markdown",
+        "content": "## SQL Joins\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_27",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT a.name, b.name AS other FROM demo a JOIN demo b ON a.category = b.category AND a.id < b.id LIMIT 10;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_28",
+        "type": "markdown",
+        "content": "## SQL Inner Join\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_28",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT a.name, b.city FROM demo a INNER JOIN demo b ON a.city = b.city AND a.id < b.id LIMIT 10;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_29",
+        "type": "markdown",
+        "content": "## SQL Left Join\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_29",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT a.name, b.name AS match FROM demo a LEFT JOIN demo b ON a.category = b.category AND a.id <> b.id LIMIT 10;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_30",
+        "type": "markdown",
+        "content": "## SQL Right Join\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_30",
+        "type": "sql",
+        "content": "USE my_db;\n-- SQLite has no RIGHT JOIN; swap tables and use LEFT JOIN instead.\nSELECT a.name, b.name AS match FROM demo a LEFT JOIN demo b ON a.category = b.category AND a.id <> b.id LIMIT 10;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_31",
+        "type": "markdown",
+        "content": "## SQL Full Join\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_31",
+        "type": "sql",
+        "content": "USE my_db;\n-- FULL JOIN may be unsupported; emulate with LEFT JOIN + UNION if needed.\nSELECT a.name, b.name FROM demo a LEFT JOIN demo b ON a.city = b.city LIMIT 10;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_32",
+        "type": "markdown",
+        "content": "## SQL Self Join\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_32",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT a.name AS person, b.name AS same_city FROM demo a JOIN demo b ON a.city = b.city AND a.id < b.id;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_33",
+        "type": "markdown",
+        "content": "## SQL Union\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_33",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT city FROM demo WHERE category = 'Retail' UNION SELECT city FROM demo WHERE category = 'Corporate';",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_34",
+        "type": "markdown",
+        "content": "## SQL Union All\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_34",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT category AS val FROM demo UNION ALL SELECT city AS val FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_35",
+        "type": "markdown",
+        "content": "## SQL Group By\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_35",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT category, COUNT(*) AS n FROM demo GROUP BY category;\nSELECT city, SUM(amount) AS total FROM demo GROUP BY city;\nSELECT is_active, AVG(score) AS avg_score FROM demo GROUP BY is_active;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_36",
+        "type": "markdown",
+        "content": "## SQL Having\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_36",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT category, COUNT(*) AS n FROM demo GROUP BY category HAVING COUNT(*) > 1;\nSELECT city, SUM(amount) AS total FROM demo GROUP BY city HAVING SUM(amount) > 2000;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_37",
+        "type": "markdown",
+        "content": "## SQL Exists\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_37",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo a WHERE EXISTS (SELECT 1 FROM demo b WHERE b.category = a.category AND b.id <> a.id);",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_38",
+        "type": "markdown",
+        "content": "## SQL Any\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_38",
+        "type": "sql",
+        "content": "USE my_db;\n-- ANY/ALL may be unsupported locally; equivalent with MAX/MIN:\nSELECT * FROM demo WHERE amount > (SELECT MIN(amount) FROM demo WHERE category = 'Corporate');",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_39",
+        "type": "markdown",
+        "content": "## SQL All\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_39",
+        "type": "sql",
+        "content": "USE my_db;\n-- ALL equivalent with MAX:\nSELECT * FROM demo WHERE amount > (SELECT MAX(amount) FROM demo WHERE category = 'Retail');",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_40",
+        "type": "markdown",
+        "content": "## SQL Select Into\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_40",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_backup;\nSELECT * INTO demo_backup FROM demo;\nSELECT COUNT(*) AS backed_up FROM demo_backup;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_41",
+        "type": "markdown",
+        "content": "## SQL Insert Into Select\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_41",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_retail;\nCREATE TABLE demo_retail (id INTEGER, name TEXT, amount REAL);\nINSERT INTO demo_retail (id, name, amount) SELECT id, name, amount FROM demo WHERE category = 'Retail';\nSELECT * FROM demo_retail;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_42",
+        "type": "markdown",
+        "content": "## SQL Case\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_42",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT name, CASE WHEN score >= 80 THEN 'HIGH' WHEN score >= 60 THEN 'MED' ELSE 'LOW' END AS band FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_43",
+        "type": "markdown",
+        "content": "## SQL Null Functions\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_43",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT id, COALESCE(notes, 'Unknown') AS c1 FROM demo;\nSELECT id, ISNULL(notes, 'n/a') AS c2 FROM demo;\nSELECT id, IFNULL(notes, '-') AS c3 FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_44",
+        "type": "markdown",
+        "content": "## SQL Stored Procedures\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_44",
+        "type": "sql",
+        "content": "-- Stored procedures are engine-specific and not supported in this local workspace.\n-- Save the query as a reusable snippet instead.\nUSE my_db;\nSELECT * FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_45",
+        "type": "markdown",
+        "content": "## SQL Comments\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_45",
+        "type": "sql",
+        "content": "USE my_db;\n-- Single-line comment\n/* Multi-line\n   comment */\nSELECT id, name FROM demo; -- inline comment",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_md_46",
+        "type": "markdown",
+        "content": "## SQL Operators\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_tutorial_reference_sql_46",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE score >= 80 AND amount <> 0;\nSELECT id, amount * qty AS total_value FROM demo;\nSELECT id, (score + 10) AS boosted FROM demo;",
+        "result": null
+      }
+    ]
+  },
+  {
+    "id": "system_sql_database_w3schools",
+    "name": "W3Schools SQL Database Syntax (Examples)",
+    "createdAt": "02/07/2026",
+    "system": true,
+    "version": 3,
+    "cells": [
+      {
+        "id": "sql_database_reference_intro_md",
+        "type": "markdown",
+        "content": "# sql database reference\nGenerated from the W3Schools SQL reference, with runnable examples over a demo table.\n\n**Run the Setup cell below first** — it creates `my_db` and the `demo` table that every example uses.",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_setup_md",
+        "type": "markdown",
+        "content": "## ⚙️ Setup — demo database & table\nCreates `my_db.demo` with 10 sample rows spanning text, numeric and date columns (plus NULLs).",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_setup_sql",
+        "type": "sql",
+        "content": "-- ⚙️ SETUP — run this cell first.\n-- Creates my_db and the demo table that every example below uses.\nCREATE DATABASE IF NOT EXISTS my_db;\nUSE my_db;\nDROP TABLE IF EXISTS demo;\nCREATE TABLE demo (\n  id INTEGER, name TEXT, category TEXT, city TEXT,\n  amount REAL, qty INTEGER, score REAL,\n  created_at DATE, updated_at DATE, due_date DATE,\n  is_active INTEGER, notes TEXT\n);\nINSERT INTO demo (id, name, category, city, amount, qty, score, created_at, updated_at, due_date, is_active, notes) VALUES\n  (1, 'Aisyah Rahman', 'Retail', 'Kuala Lumpur', 1520.75, 3, 88.5, '2024-01-15', '2024-06-01', '2026-03-31', 1, 'VIP client'),\n  (2, 'Budi Santoso', 'Corporate', 'Johor Bahru', 9800.00, 12, 72.0, '2023-11-02', '2024-05-20', '2026-04-30', 1, NULL),\n  (3, 'Chen Wei', 'Retail', 'Penang', 340.50, 1, 65.25, '2024-03-10', '2024-04-18', '2026-02-28', 0, 'Follow up'),\n  (4, 'Devi Kumar', 'SME', 'Ipoh', 5600.00, 7, 91.0, '2022-07-21', '2024-06-15', '2026-05-31', 1, NULL),\n  (5, 'Emily Tan', 'Corporate', 'Kuala Lumpur', 12040.25, 20, 84.75, '2023-02-14', '2024-03-30', '2026-01-31', 1, 'Key account'),\n  (6, 'Faisal Idris', 'Retail', 'Melaka', 780.00, 2, 58.0, '2024-05-05', '2024-05-25', '2026-06-30', 0, NULL),\n  (7, 'Grace Lim', 'SME', 'Penang', 3300.90, 5, 77.5, '2023-09-19', '2024-06-10', '2026-03-15', 1, 'Renewal'),\n  (8, 'Hafiz Omar', 'Corporate', 'Johor Bahru', 8750.00, 15, 69.0, '2022-12-01', '2024-02-28', '2026-04-20', 1, NULL),\n  (9, 'Iman Yusof', 'Retail', 'Ipoh', 210.40, 1, 95.0, '2024-06-01', '2024-06-20', '2026-07-31', 1, 'New'),\n  (10, 'Jason Ng', 'SME', 'Kuala Lumpur', 4600.00, 9, 80.25, '2023-04-27', '2024-05-11', '2026-05-15', 0, 'Overdue');\nSELECT * FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_1",
+        "type": "markdown",
+        "content": "## SQL Create DB\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_1",
+        "type": "sql",
+        "content": "CREATE DATABASE IF NOT EXISTS my_db;\nUSE my_db;\nSELECT 'my_db ready' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_2",
+        "type": "markdown",
+        "content": "## SQL Drop DB\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_2",
+        "type": "sql",
+        "content": "-- Careful: DROP DATABASE removes everything.\n-- CREATE DATABASE IF NOT EXISTS scratch_db;\n-- DROP DATABASE scratch_db;\nSELECT 'see commented example above' AS note;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_3",
+        "type": "markdown",
+        "content": "## SQL Backup DB\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_3",
+        "type": "sql",
+        "content": "-- Backup is engine-specific. In this workspace, copy a table:\nUSE my_db;\nDROP TABLE IF EXISTS demo_backup;\nSELECT * INTO demo_backup FROM demo;\nSELECT COUNT(*) AS backed_up FROM demo_backup;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_4",
+        "type": "markdown",
+        "content": "## SQL Create Table\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_4",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_copy;\nCREATE TABLE demo_copy (id INTEGER, name TEXT, amount REAL, created_at DATE);\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_5",
+        "type": "markdown",
+        "content": "## SQL Drop Table\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_5",
+        "type": "sql",
+        "content": "USE my_db;\nCREATE TABLE IF NOT EXISTS scratch (id INTEGER);\nDROP TABLE scratch;\nSELECT 'dropped' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_6",
+        "type": "markdown",
+        "content": "## SQL Alter Table\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_6",
+        "type": "sql",
+        "content": "USE my_db;\nALTER TABLE demo ADD COLUMN email TEXT;\nSELECT id, email FROM demo LIMIT 3;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_7",
+        "type": "markdown",
+        "content": "## SQL Constraints\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_7",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_constrained;\nCREATE TABLE demo_constrained (id INTEGER PRIMARY KEY, amount REAL CHECK (amount > 0));\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_8",
+        "type": "markdown",
+        "content": "## SQL Not Null\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_8",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_nn;\nCREATE TABLE demo_nn (id INTEGER NOT NULL, name TEXT NOT NULL);\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_9",
+        "type": "markdown",
+        "content": "## SQL Unique\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_9",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_u;\nCREATE TABLE demo_u (id INTEGER, email TEXT UNIQUE);\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_10",
+        "type": "markdown",
+        "content": "## SQL Primary Key\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_10",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_pk;\nCREATE TABLE demo_pk (id INTEGER PRIMARY KEY, name TEXT);\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_11",
+        "type": "markdown",
+        "content": "## SQL Foreign Key\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_11",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_child;\nCREATE TABLE demo_child (child_id INTEGER PRIMARY KEY, demo_id INTEGER, FOREIGN KEY (demo_id) REFERENCES demo(id));\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_12",
+        "type": "markdown",
+        "content": "## SQL Check\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_12",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_check;\nCREATE TABLE demo_check (id INTEGER, amount REAL, CHECK (amount >= 0));\nSELECT 'created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_13",
+        "type": "markdown",
+        "content": "## SQL Default\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_13",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_default;\nCREATE TABLE demo_default (id INTEGER, status TEXT DEFAULT 'ACTIVE');\nINSERT INTO demo_default (id) VALUES (1);\nSELECT * FROM demo_default;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_14",
+        "type": "markdown",
+        "content": "## SQL Create Index\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_14",
+        "type": "sql",
+        "content": "USE my_db;\nCREATE INDEX IF NOT EXISTS idx_demo_city ON demo(city);\nSELECT 'index created' AS status;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_15",
+        "type": "markdown",
+        "content": "## SQL Auto Increment\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_15",
+        "type": "sql",
+        "content": "USE my_db;\nDROP TABLE IF EXISTS demo_auto;\nCREATE TABLE demo_auto (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT);\nINSERT INTO demo_auto (name) VALUES ('a'), ('b');\nSELECT * FROM demo_auto;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_16",
+        "type": "markdown",
+        "content": "## SQL Dates\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_16",
+        "type": "sql",
+        "content": "USE my_db;\nSELECT * FROM demo WHERE created_at >= '2024-01-01';\nSELECT id, YEAR(created_at) AS yr, MONTH(created_at) AS mo FROM demo;\nSELECT id, DATEDIFF('day', created_at, due_date) AS days_to_due FROM demo;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_17",
+        "type": "markdown",
+        "content": "## SQL Views\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_17",
+        "type": "sql",
+        "content": "USE my_db;\nDROP VIEW IF EXISTS vw_high_score;\nCREATE VIEW vw_high_score AS SELECT id, name, score FROM demo WHERE score >= 80;\nSELECT * FROM vw_high_score;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_18",
+        "type": "markdown",
+        "content": "## SQL Injection\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_18",
+        "type": "sql",
+        "content": "-- Never concatenate user input into SQL. Use safe literals / parameters.\nUSE my_db;\nSELECT * FROM demo WHERE id = 1;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_19",
+        "type": "markdown",
+        "content": "## SQL Parameters\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_19",
+        "type": "sql",
+        "content": "-- This workspace runs literal SQL; substitute values directly:\nUSE my_db;\nSELECT * FROM demo WHERE category = 'Retail';",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_20",
+        "type": "markdown",
+        "content": "## SQL Prepared Statements\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_20",
+        "type": "sql",
+        "content": "-- Prepared statements are driver-level; run the final SQL here:\nUSE my_db;\nSELECT * FROM demo WHERE id = 1;",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_md_21",
+        "type": "markdown",
+        "content": "## SQL Hosting\nSource: W3Schools SQL\n\nExample syntax:",
+        "result": null
+      },
+      {
+        "id": "sql_database_reference_sql_21",
+        "type": "sql",
+        "content": "-- Hosting depends on your deployment.\nUSE my_db;\nSELECT 'local workspace' AS environment;",
+        "result": null
+      }
+    ]
+  }
+]
