@@ -1,0 +1,1517 @@
+import alasqlImport from 'alasql'
+const KNOWN_DATABASES = new Set()
+const DB_TABLE_COLUMN_CASE = {}
+const DB_TABLE_COLUMN_TYPES = {}
+const DB_TABLE_NAME_CASE = {}
+const DB_TABLE_SCHEMA = {}
+const DB_CREDENTIALS = {}
+const DB_CONNECTION_STATE = {}
+
+const alasql = typeof alasqlImport === 'function' ? alasqlImport : alasqlImport?.default
+
+let runtimeInitialized = false
+let runtimeInitError = null
+
+function ensureTableRegistries(dbName) {
+  if (!DB_TABLE_COLUMN_CASE[dbName]) DB_TABLE_COLUMN_CASE[dbName] = {}
+  if (!DB_TABLE_COLUMN_TYPES[dbName]) DB_TABLE_COLUMN_TYPES[dbName] = {}
+  if (!DB_TABLE_NAME_CASE[dbName]) DB_TABLE_NAME_CASE[dbName] = {}
+  if (!DB_TABLE_SCHEMA[dbName]) DB_TABLE_SCHEMA[dbName] = {}
+}
+
+function registerKnownDatabase(dbName) {
+  if (!dbName) return
+  const normalizedDb = String(dbName).toLowerCase()
+  KNOWN_DATABASES.add(normalizedDb)
+  ensureTableRegistries(normalizedDb)
+}
+
+function databaseExists(dbName = '') {
+  return KNOWN_DATABASES.has(String(dbName).toLowerCase())
+}
+
+function normalizeIdentifier(identifier = '') {
+  return String(identifier).replace(/["'`\[\]]/g, '').trim()
+}
+
+function splitIdentifierParts(token = '') {
+  return normalizeIdentifier(token).split('.').filter(Boolean)
+}
+
+function stripSqlComments(sqlText) {
+  let out = ''
+  let i = 0
+  let inSingle = false
+  let inDouble = false
+  let inLineComment = false
+  let inBlockComment = false
+
+  while (i < sqlText.length) {
+    const ch = sqlText[i]
+    const next = sqlText[i + 1]
+
+    if (inLineComment) {
+      if (ch === '\n') {
+        inLineComment = false
+        out += ch
+      }
+      i += 1
+      continue
+    }
+
+    if (inBlockComment) {
+      if (ch === '*' && next === '/') {
+        inBlockComment = false
+        i += 2
+      } else {
+        i += 1
+      }
+      continue
+    }
+
+    if (!inSingle && !inDouble) {
+      if (ch === '-' && next === '-') {
+        inLineComment = true
+        i += 2
+        continue
+      }
+      if (ch === '/' && next === '*') {
+        inBlockComment = true
+        i += 2
+        continue
+      }
+    }
+
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      out += ch
+      i += 1
+      continue
+    }
+
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      out += ch
+      i += 1
+      continue
+    }
+
+    out += ch
+    i += 1
+  }
+
+  return out
+}
+
+function normalizeTableToken(token = '') {
+  const parts = splitIdentifierParts(token)
+  return parts.length > 0 ? parts[parts.length - 1].toLowerCase() : ''
+}
+
+function getOriginalTableName(token = '') {
+  const parts = splitIdentifierParts(token)
+  return parts.length > 0 ? parts[parts.length - 1] : ''
+}
+
+function extractDbQualifier(token = '') {
+  const parts = splitIdentifierParts(token)
+  if (parts.length >= 3) return parts[0].toLowerCase()
+  if (parts.length === 2 && databaseExists(parts[0])) return parts[0].toLowerCase()
+  return ''
+}
+
+function extractSchemaQualifier(token = '') {
+  const parts = splitIdentifierParts(token)
+  if (parts.length >= 3) return parts[1].toLowerCase()
+  if (parts.length === 2 && !databaseExists(parts[0])) return parts[0].toLowerCase()
+  return 'public'
+}
+
+function findDatabasesForTable(tableName = '') {
+  const normalizedTable = String(tableName).toLowerCase()
+  return [...KNOWN_DATABASES].filter((dbName) => {
+    if (DB_TABLE_NAME_CASE?.[dbName]?.[normalizedTable]) return true
+    const db = alasql?.databases?.[dbName]
+    return Object.keys(db?.tables || {}).some(name => String(name).toLowerCase() === normalizedTable)
+  })
+}
+
+function resolveTableDatabase(token = '', currentDb = '') {
+  const explicitDb = extractDbQualifier(token)
+  if (explicitDb) return explicitDb
+  if (currentDb) return String(currentDb).toLowerCase()
+
+  const matches = findDatabasesForTable(normalizeTableToken(token))
+  if (matches.length === 1) return matches[0]
+  return ''
+}
+
+function splitSqlStatements(sqlText) {
+  const statements = []
+  let current = ''
+  let inSingle = false
+  let inDouble = false
+
+  for (let i = 0; i < sqlText.length; i += 1) {
+    const ch = sqlText[i]
+
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      current += ch
+      continue
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      current += ch
+      continue
+    }
+
+    if (ch === ';' && !inSingle && !inDouble) {
+      const trimmed = current.trim()
+      if (trimmed) statements.push(trimmed)
+      current = ''
+      continue
+    }
+
+    current += ch
+  }
+
+  const trailing = current.trim()
+  if (trailing) statements.push(trailing)
+  return statements
+}
+
+function escapeIdentifier(identifier = '') {
+  return `[${String(identifier).replace(/\]/g, ']]')}]`
+}
+
+function escapeLiteral(value) {
+  if (value === null || value === undefined) return 'NULL'
+  if (typeof value === 'number') return Number.isFinite(value) ? String(value) : 'NULL'
+  if (typeof value === 'boolean') return value ? 'TRUE' : 'FALSE'
+  const s = String(value).replace(/'/g, "''")
+  return `'${s}'`
+}
+
+function inferSqlType(rows, columnName) {
+  for (const row of rows) {
+    const value = row?.[columnName]
+    if (value === null || value === undefined) continue
+    if (typeof value === 'boolean') return 'BOOLEAN'
+    if (typeof value === 'number') return Number.isInteger(value) ? 'INT' : 'NUMBER'
+    return 'STRING'
+  }
+  return 'STRING'
+}
+
+function createColumnCaseMap(columns = []) {
+  const map = {}
+  for (const column of columns) {
+    const key = String(typeof column === 'object' ? column?.name : column || '').trim()
+    if (!key) continue
+    map[key.toLowerCase()] = key
+  }
+  return map
+}
+
+function normalizeSqlType(type = '') {
+  const normalized = String(type || '').trim().toUpperCase()
+  if (!normalized) return 'STRING'
+  if (normalized.includes('INT')) return 'INT'
+  if (normalized.includes('NUM') || normalized.includes('DEC') || normalized.includes('FLOAT') || normalized.includes('DOUBLE') || normalized.includes('REAL')) return 'NUMBER'
+  if (normalized.includes('BOOL')) return 'BOOLEAN'
+  if (normalized.includes('DATE') || normalized.includes('TIME')) return 'DATE'
+  if (normalized.includes('CHAR') || normalized.includes('TEXT') || normalized.includes('STRING') || normalized.includes('VARCHAR')) return 'STRING'
+  return normalized
+}
+
+function createColumnTypeMap(columns = []) {
+  const typeMap = {}
+  for (const column of columns) {
+    if (typeof column === 'object' && column?.name) {
+      typeMap[String(column.name).toLowerCase()] = normalizeSqlType(column.type)
+      continue
+    }
+    const key = String(column || '').trim()
+    if (!key) continue
+    typeMap[key.toLowerCase()] = 'STRING'
+  }
+  return typeMap
+}
+
+function registerTableColumns(dbName, tableName, columns = [], schemaName = 'public') {
+  if (!dbName || !tableName) return
+
+  const normalizedDb = String(dbName).toLowerCase()
+  const originalTableName = String(tableName)
+  const normalizedTable = originalTableName.toLowerCase()
+
+  registerKnownDatabase(normalizedDb)
+  DB_TABLE_NAME_CASE[normalizedDb][normalizedTable] = originalTableName
+  DB_TABLE_SCHEMA[normalizedDb][normalizedTable] = String(schemaName || 'public')
+  DB_TABLE_COLUMN_CASE[normalizedDb][normalizedTable] = createColumnCaseMap(columns)
+  DB_TABLE_COLUMN_TYPES[normalizedDb][normalizedTable] = createColumnTypeMap(columns)
+}
+
+function removeKnownDatabase(dbName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  if (!normalizedDb) return
+  KNOWN_DATABASES.delete(normalizedDb)
+  delete DB_TABLE_COLUMN_CASE[normalizedDb]
+  delete DB_TABLE_COLUMN_TYPES[normalizedDb]
+  delete DB_TABLE_NAME_CASE[normalizedDb]
+  delete DB_TABLE_SCHEMA[normalizedDb]
+  delete DB_CREDENTIALS[normalizedDb]
+  delete DB_CONNECTION_STATE[normalizedDb]
+}
+
+export function setDatabaseCredentials(dbName, username, password) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  if (!normalizedDb) return
+  DB_CREDENTIALS[normalizedDb] = { username, password }
+  DB_CONNECTION_STATE[normalizedDb] = true
+}
+
+export function getDatabaseCredentials(dbName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  return DB_CREDENTIALS[normalizedDb] || null
+}
+
+export function setDatabaseConnected(dbName, isConnected) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  DB_CONNECTION_STATE[normalizedDb] = isConnected
+}
+
+export function isDatabaseConnected(dbName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  return DB_CONNECTION_STATE[normalizedDb] || false
+}
+
+function removeTableColumns(dbName, tableName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  const normalizedTable = String(tableName || '').toLowerCase()
+  delete DB_TABLE_COLUMN_CASE?.[normalizedDb]?.[normalizedTable]
+  delete DB_TABLE_COLUMN_TYPES?.[normalizedDb]?.[normalizedTable]
+  delete DB_TABLE_NAME_CASE?.[normalizedDb]?.[normalizedTable]
+  delete DB_TABLE_SCHEMA?.[normalizedDb]?.[normalizedTable]
+}
+
+function getTableColumnCaseMap(dbName, tableName) {
+  return DB_TABLE_COLUMN_CASE?.[String(dbName || '').toLowerCase()]?.[String(tableName || '').toLowerCase()] || null
+}
+
+function getTableSchema(dbName, tableName) {
+  return DB_TABLE_SCHEMA?.[String(dbName || '').toLowerCase()]?.[String(tableName || '').toLowerCase()] || 'public'
+}
+
+function getTableColumnTypeMap(dbName, tableName) {
+  return DB_TABLE_COLUMN_TYPES?.[String(dbName || '').toLowerCase()]?.[String(tableName || '').toLowerCase()] || {}
+}
+
+function mergeColumnCaseMaps(stmt, dbName) {
+  const merged = {}
+  for (const token of extractTableTokens(stmt)) {
+    const tableName = normalizeTableToken(token)
+    if (!tableName) continue
+
+    const tableDb = resolveTableDatabase(token, dbName)
+    const tableMap = getTableColumnCaseMap(tableDb, tableName)
+    if (tableMap) Object.assign(merged, tableMap)
+  }
+  return merged
+}
+
+function mergeColumnTypeMaps(stmt, dbName) {
+  const merged = {}
+  for (const token of extractTableTokens(stmt)) {
+    const tableName = normalizeTableToken(token)
+    if (!tableName) continue
+
+    const tableDb = resolveTableDatabase(token, dbName)
+    const caseMap = getTableColumnCaseMap(tableDb, tableName)
+    const typeMap = getTableColumnTypeMap(tableDb, tableName)
+    if (!caseMap || !typeMap) continue
+
+    for (const [lookup, actualName] of Object.entries(caseMap)) {
+      merged[String(actualName).toLowerCase()] = normalizeSqlType(typeMap[lookup] || 'STRING')
+    }
+  }
+  return merged
+}
+
+function convertValueToSqlType(value, sqlType) {
+  if (value === null || value === undefined) return null
+  const type = normalizeSqlType(sqlType)
+
+  if (type === 'INT') {
+    const n = Number.parseInt(String(value), 10)
+    return Number.isFinite(n) ? n : null
+  }
+
+  if (type === 'NUMBER') {
+    const n = Number.parseFloat(String(value))
+    return Number.isFinite(n) ? n : null
+  }
+
+  if (type === 'BOOLEAN') {
+    if (typeof value === 'boolean') return value
+    const raw = String(value).trim().toLowerCase()
+    if (raw === 'true' || raw === '1' || raw === 'yes') return true
+    if (raw === 'false' || raw === '0' || raw === 'no') return false
+    return null
+  }
+
+  if (type === 'DATE') {
+    const raw = String(value).trim()
+    if (!raw) return null
+
+    const asNumber = Number(raw)
+    if (Number.isFinite(asNumber) && asNumber > 0) {
+      const excelEpochUtc = Date.UTC(1899, 11, 30)
+      const date = new Date(excelEpochUtc + Math.round(asNumber * 24 * 60 * 60 * 1000))
+      if (!Number.isNaN(date.getTime())) {
+        const mm = date.getMonth() + 1
+        const dd = date.getDate()
+        const yyyy = date.getFullYear()
+        return `${mm}/${dd}/${yyyy}`
+      }
+    }
+
+    const parsed = new Date(raw)
+    if (Number.isNaN(parsed.getTime())) return null
+    const mm = parsed.getMonth() + 1
+    const dd = parsed.getDate()
+    const yyyy = parsed.getFullYear()
+    return `${mm}/${dd}/${yyyy}`
+  }
+
+  return String(value)
+}
+
+function applyAlterDropColumn(dbName, tableName, columnName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  const normalizedTable = String(tableName || '').toLowerCase()
+  const caseMap = getTableColumnCaseMap(normalizedDb, normalizedTable) || {}
+  const typeMap = getTableColumnTypeMap(normalizedDb, normalizedTable) || {}
+  const displayTableName = DB_TABLE_NAME_CASE?.[normalizedDb]?.[normalizedTable] || tableName
+  const schemaName = getTableSchema(normalizedDb, normalizedTable)
+  const targetLower = String(columnName || '').toLowerCase()
+  const remainingColumns = Object.values(caseMap)
+    .filter(name => String(name).toLowerCase() !== targetLower)
+    .map(name => ({ name, type: normalizeSqlType(typeMap[String(name).toLowerCase()] || 'STRING') }))
+
+  if (remainingColumns.length === 0) throw new Error(`Cannot drop the only column of table ${displayTableName}`)
+  const rows = runInDatabase(normalizedDb, `SELECT * FROM ${escapeIdentifier(displayTableName)}`)
+  runInDatabase(normalizedDb, `DROP TABLE IF EXISTS ${escapeIdentifier(displayTableName)}`)
+  const defs = remainingColumns.map(col => `${escapeIdentifier(col.name)} ${col.type}`).join(', ')
+  runInDatabase(normalizedDb, `CREATE TABLE ${escapeIdentifier(displayTableName)} (${defs})`)
+  for (const row of rows) {
+    const colSql = remainingColumns.map(col => escapeIdentifier(col.name)).join(', ')
+    const valSql = remainingColumns.map(col => escapeLiteral(row?.[col.name])).join(', ')
+    runInDatabase(normalizedDb, `INSERT INTO ${escapeIdentifier(displayTableName)} (${colSql}) VALUES (${valSql})`)
+  }
+  registerTableColumns(normalizedDb, displayTableName, remainingColumns, schemaName)
+}
+
+function applyAlterRenameColumn(dbName, tableName, oldColumnName, newColumnName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  const normalizedTable = String(tableName || '').toLowerCase()
+  const caseMap = getTableColumnCaseMap(normalizedDb, normalizedTable) || {}
+  const typeMap = getTableColumnTypeMap(normalizedDb, normalizedTable) || {}
+  const displayTableName = DB_TABLE_NAME_CASE?.[normalizedDb]?.[normalizedTable] || tableName
+  const schemaName = getTableSchema(normalizedDb, normalizedTable)
+  const oldLower = String(oldColumnName || '').toLowerCase()
+  const updatedColumns = Object.values(caseMap).map((name) => {
+    const lower = String(name).toLowerCase()
+    const actualName = lower === oldLower ? newColumnName : name
+    return { name: actualName, type: normalizeSqlType(typeMap[lower] || 'STRING') }
+  })
+  const rows = runInDatabase(normalizedDb, `SELECT * FROM ${escapeIdentifier(displayTableName)}`)
+  runInDatabase(normalizedDb, `DROP TABLE IF EXISTS ${escapeIdentifier(displayTableName)}`)
+  const defs = updatedColumns.map(col => `${escapeIdentifier(col.name)} ${col.type}`).join(', ')
+  runInDatabase(normalizedDb, `CREATE TABLE ${escapeIdentifier(displayTableName)} (${defs})`)
+  for (const row of rows) {
+    const colSql = updatedColumns.map(col => escapeIdentifier(col.name)).join(', ')
+    const oldName = Object.values(caseMap).find(n => String(n).toLowerCase() === oldLower) || oldColumnName
+    const valSql = updatedColumns.map(col => {
+      const srcName = col.name === newColumnName ? oldName : col.name
+      return escapeLiteral(row?.[srcName])
+    }).join(', ')
+    runInDatabase(normalizedDb, `INSERT INTO ${escapeIdentifier(displayTableName)} (${colSql}) VALUES (${valSql})`)
+  }
+  registerTableColumns(normalizedDb, displayTableName, updatedColumns, schemaName)
+}
+
+function applyAlterChangeColumn(dbName, tableName, oldColumnName, newColumnName, columnType) {
+  applyAlterRenameColumn(dbName, tableName, oldColumnName, newColumnName)
+  if (normalizeSqlType(columnType) !== 'STRING') {
+    applyAlterModifyColumn(dbName, tableName, newColumnName, columnType)
+  }
+}
+
+function applyRenameTable(dbName, oldTableName, newTableName) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  const normalizedOld = String(oldTableName || '').toLowerCase()
+  const displayOld = DB_TABLE_NAME_CASE?.[normalizedDb]?.[normalizedOld] || oldTableName
+  const caseMap = getTableColumnCaseMap(normalizedDb, normalizedOld) || {}
+  const typeMap = getTableColumnTypeMap(normalizedDb, normalizedOld) || {}
+  const schemaName = getTableSchema(normalizedDb, normalizedOld)
+  const columns = Object.values(caseMap).map(name => ({ name, type: normalizeSqlType(typeMap[String(name).toLowerCase()] || 'STRING') }))
+  const rows = runInDatabase(normalizedDb, `SELECT * FROM ${escapeIdentifier(displayOld)}`)
+  runInDatabase(normalizedDb, `DROP TABLE IF EXISTS ${escapeIdentifier(displayOld)}`)
+  removeTableColumns(normalizedDb, oldTableName)
+  const defs = columns.map(col => `${escapeIdentifier(col.name)} ${col.type}`).join(', ')
+  runInDatabase(normalizedDb, `CREATE TABLE ${escapeIdentifier(newTableName)} (${defs})`)
+  for (const row of rows) {
+    const colSql = columns.map(col => escapeIdentifier(col.name)).join(', ')
+    const valSql = columns.map(col => escapeLiteral(row?.[col.name])).join(', ')
+    runInDatabase(normalizedDb, `INSERT INTO ${escapeIdentifier(newTableName)} (${colSql}) VALUES (${valSql})`)
+  }
+  registerTableColumns(normalizedDb, newTableName, columns, schemaName)
+}
+
+function applyAlterModifyColumn(dbName, tableName, columnName, columnType) {
+  const normalizedDb = String(dbName || '').toLowerCase()
+  const normalizedTable = String(tableName || '').toLowerCase()
+  const caseMap = getTableColumnCaseMap(normalizedDb, normalizedTable) || {}
+  const typeMap = getTableColumnTypeMap(normalizedDb, normalizedTable) || {}
+  const displayTableName = DB_TABLE_NAME_CASE?.[normalizedDb]?.[normalizedTable] || tableName
+  const schemaName = getTableSchema(normalizedDb, normalizedTable)
+  const orderedColumns = Object.values(caseMap)
+
+  if (!displayTableName || orderedColumns.length === 0) {
+    throw new Error(`Could not resolve table metadata for ${tableName}`)
+  }
+
+  const targetLower = String(columnName || '').toLowerCase()
+  const targetColumn = orderedColumns.find(col => String(col).toLowerCase() === targetLower)
+  if (!targetColumn) throw new Error(`Column does not exist: ${columnName}`)
+
+  const rows = runInDatabase(normalizedDb, `SELECT * FROM ${escapeIdentifier(displayTableName)}`)
+  const updatedColumns = orderedColumns.map((name) => {
+    const lower = String(name).toLowerCase()
+    const nextType = lower === targetLower
+      ? normalizeSqlType(columnType)
+      : normalizeSqlType(typeMap[lower] || inferSqlType(rows, name))
+    return { name, type: nextType }
+  })
+
+  runInDatabase(normalizedDb, `DROP TABLE IF EXISTS ${escapeIdentifier(displayTableName)}`)
+  const defs = updatedColumns.map(col => `${escapeIdentifier(col.name)} ${col.type}`).join(', ')
+  runInDatabase(normalizedDb, `CREATE TABLE ${escapeIdentifier(displayTableName)} (${defs})`)
+
+  for (const row of rows) {
+    const colSql = updatedColumns.map(col => escapeIdentifier(col.name)).join(', ')
+    const valuesSql = updatedColumns.map(col => escapeLiteral(convertValueToSqlType(row?.[col.name], col.type))).join(', ')
+    runInDatabase(normalizedDb, `INSERT INTO ${escapeIdentifier(displayTableName)} (${colSql}) VALUES (${valuesSql})`)
+  }
+
+  registerTableColumns(normalizedDb, displayTableName, updatedColumns, schemaName)
+}
+
+function splitTopLevelComma(text = '') {
+  const parts = []
+  let current = ''
+  let depth = 0
+  let inSingle = false
+  let inDouble = false
+
+  for (let i = 0; i < text.length; i += 1) {
+    const ch = text[i]
+
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      current += ch
+      continue
+    }
+
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      current += ch
+      continue
+    }
+
+    if (!inSingle && !inDouble) {
+      if (ch === '(') depth += 1
+      if (ch === ')') depth = Math.max(0, depth - 1)
+      if (ch === ',' && depth === 0) {
+        if (current.trim()) parts.push(current.trim())
+        current = ''
+        continue
+      }
+    }
+
+    current += ch
+  }
+
+  if (current.trim()) parts.push(current.trim())
+  return parts
+}
+
+function unquoteIdentifier(identifier = '') {
+  const value = String(identifier).trim()
+  return value.replace(/^([`"'\[])(.*)([`"'\]])$/, '$2')
+}
+
+function extractSelectClause(stmt = '') {
+  const normalized = String(stmt)
+  const selectMatch = normalized.match(/^\s*select\s+([\s\S]+?)\s+from\b/i)
+  if (selectMatch) return selectMatch[1]
+
+  const withMatch = normalized.match(/\)\s*select\s+([\s\S]+?)\s+from\b/i)
+  return withMatch?.[1] || ''
+}
+
+function extractExplicitAliasMap(stmt = '') {
+  const aliasMap = {}
+  const selectClause = extractSelectClause(stmt)
+  if (!selectClause) return aliasMap
+
+  for (const entry of splitTopLevelComma(selectClause)) {
+    const asMatch = entry.match(/\s+as\s+(`[^`]+`|"[^"]+"|'[^']+'|\[[^\]]+\]|[a-zA-Z_][\w$]*)\s*$/i)
+    const trailingMatch = !asMatch
+      ? entry.match(/(?:^|\s)(`[^`]+`|"[^"]+"|'[^']+'|\[[^\]]+\]|[a-zA-Z_][\w$]*)\s*$/)
+      : null
+
+    const rawAlias = asMatch?.[1] || trailingMatch?.[1]
+    if (!rawAlias) continue
+
+    if (!asMatch) {
+      const candidate = unquoteIdentifier(rawAlias)
+      if (!candidate || /^\d/.test(candidate) || /[().+\-/*]/.test(candidate)) continue
+      const beforeAlias = entry.slice(0, entry.lastIndexOf(rawAlias)).trim()
+      if (!beforeAlias || beforeAlias === candidate) continue
+    }
+
+    const alias = unquoteIdentifier(rawAlias)
+    if (alias) aliasMap[alias.toLowerCase()] = alias
+  }
+
+  return aliasMap
+}
+
+const IDENTIFIER_CONTEXT_SKIP = new Set([
+  'as',
+  'from',
+  'join',
+  'update',
+  'into',
+  'table',
+  'database',
+  'schema',
+  'column',
+  'view',
+])
+
+function canonicalizeStatementIdentifiers(stmt, dbName) {
+  const tableCaseMap = mergeColumnCaseMaps(stmt, dbName)
+  if (Object.keys(tableCaseMap).length === 0) return stmt
+
+  let result = ''
+  let inSingle = false
+  let inDouble = false
+  let protectNextIdentifier = false
+
+  for (let i = 0; i < stmt.length; i += 1) {
+    const ch = stmt[i]
+
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      result += ch
+      continue
+    }
+
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      result += ch
+      continue
+    }
+
+    if (inSingle || inDouble) {
+      result += ch
+      continue
+    }
+
+    if (/[a-zA-Z_]/.test(ch)) {
+      let end = i + 1
+      while (end < stmt.length && /[\w$]/.test(stmt[end])) end += 1
+
+      const token = stmt.slice(i, end)
+      const lookup = token.toLowerCase()
+
+      if (protectNextIdentifier) {
+        result += token
+        protectNextIdentifier = false
+      } else {
+        result += tableCaseMap[lookup] || token
+        if (IDENTIFIER_CONTEXT_SKIP.has(lookup)) protectNextIdentifier = true
+      }
+
+      i = end - 1
+      continue
+    }
+
+    result += ch
+  }
+
+  return result
+}
+
+function remapRowKeysByCase(stmt, dbName, rows = []) {
+  if (!Array.isArray(rows) || rows.length === 0) return rows
+
+  const explicitAliasMap = extractExplicitAliasMap(stmt)
+  const tableCaseMap = mergeColumnCaseMaps(stmt, dbName)
+  const hasMappings = Object.keys(explicitAliasMap).length > 0 || Object.keys(tableCaseMap).length > 0
+  if (!hasMappings) return rows
+
+  return rows.map((row) => {
+    const mapped = {}
+    for (const [key, value] of Object.entries(row || {})) {
+      const lookupKey = String(key).toLowerCase()
+      const canonical = explicitAliasMap[lookupKey] || tableCaseMap[lookupKey] || key
+      mapped[canonical] = value
+    }
+    return mapped
+  })
+}
+
+function extractCreateTableColumns(sql = '') {
+  const openIdx = sql.indexOf('(')
+  if (openIdx < 0) return []
+
+  let depth = 0
+  let closeIdx = -1
+  let inSingle = false
+  let inDouble = false
+
+  for (let i = openIdx; i < sql.length; i += 1) {
+    const ch = sql[i]
+    if (ch === "'" && !inDouble) {
+      inSingle = !inSingle
+      continue
+    }
+    if (ch === '"' && !inSingle) {
+      inDouble = !inDouble
+      continue
+    }
+    if (inSingle || inDouble) continue
+    if (ch === '(') depth += 1
+    if (ch === ')') {
+      depth -= 1
+      if (depth === 0) {
+        closeIdx = i
+        break
+      }
+    }
+  }
+
+  if (closeIdx < 0) return []
+
+  const body = sql.slice(openIdx + 1, closeIdx)
+  return splitTopLevelComma(body)
+    .filter(definition => !/^(primary|constraint|unique|foreign|check|key)\b/i.test(definition))
+    .map((definition) => {
+      const match = definition.match(/^\s*(?:`([^`]+)`|"([^"]+)"|'([^']+)'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s+([^,]+?)\s*$/)
+      if (!match) return null
+      const name = match[1] || match[2] || match[3] || match[4] || match[5]
+      const rawType = String(match[6] || '').trim().split(/\s+/)[0]
+      return { name, type: normalizeSqlType(rawType) }
+    })
+    .filter(Boolean)
+}
+
+function parseAlterAddColumn(stmt = '') {
+  const match = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+add\s+(?:column\s+)?(?:`([^`]+)`|"([^"]+)"|'([^']+)'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))/i)
+  if (!match) return null
+  return {
+    tableToken: match[1],
+    tableName: normalizeTableToken(match[1]),
+    columnName: match[2] || match[3] || match[4] || match[5] || match[6] || null,
+  }
+}
+
+function parseAlterModifyColumn(stmt = '') {
+  const match = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+modify\s+(?:column\s+)?(?:`([^`]+)`|"([^"]+)"|'([^']+)'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s+([a-zA-Z][\w$]*(?:\s*\([^)]*\))?)\s*$/i)
+  if (!match) return null
+  return {
+    tableToken: match[1],
+    tableName: normalizeTableToken(match[1]),
+    columnName: match[2] || match[3] || match[4] || match[5] || match[6] || null,
+    columnType: normalizeSqlType(match[7]),
+  }
+}
+
+// MySQL: ALTER TABLE t CHANGE [COLUMN] old_name new_name type
+function parseAlterChangeColumn(stmt = '') {
+  const match = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+change\s+(?:column\s+)?(?:`([^`]+)`|"([^"]+)"|\'([^\']+)\'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))[\s]+(?:`([^`]+)`|"([^"]+)"|\'([^\']+)\'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s+([a-zA-Z][\w$]*(?:\s*\([^)]*\))?)\s*$/i)
+  if (!match) return null
+  return {
+    tableToken: match[1],
+    tableName: normalizeTableToken(match[1]),
+    oldColumnName: match[2] || match[3] || match[4] || match[5] || match[6] || null,
+    newColumnName: match[7] || match[8] || match[9] || match[10] || match[11] || null,
+    columnType: normalizeSqlType(match[12]),
+  }
+}
+
+// PG: ALTER TABLE t ALTER COLUMN col [SET DATA] TYPE type
+function parseAlterColumnType(stmt = '') {
+  const match = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+alter\s+(?:column\s+)?(?:`([^`]+)`|"([^"]+)"|\'([^\']+)\'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s+(?:set\s+data\s+)?type\s+([a-zA-Z][\w$]*(?:\s*\([^)]*\))?)\s*$/i)
+  if (!match) return null
+  return {
+    tableToken: match[1],
+    tableName: normalizeTableToken(match[1]),
+    columnName: match[2] || match[3] || match[4] || match[5] || match[6] || null,
+    columnType: normalizeSqlType(match[7]),
+  }
+}
+
+// RENAME COLUMN: ALTER TABLE t RENAME COLUMN old TO new
+function parseAlterRenameColumn(stmt = '') {
+  const match = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+rename\s+(?:column\s+)?(?:`([^`]+)`|"([^"]+)"|\'([^\']+)\'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s+to\s+(?:`([^`]+)`|"([^"]+)"|\'([^\']+)\'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s*$/i)
+  if (!match) return null
+  return {
+    tableToken: match[1],
+    tableName: normalizeTableToken(match[1]),
+    oldColumnName: match[2] || match[3] || match[4] || match[5] || match[6] || null,
+    newColumnName: match[7] || match[8] || match[9] || match[10] || match[11] || null,
+  }
+}
+
+// DROP COLUMN: ALTER TABLE t DROP [COLUMN] col
+function parseAlterDropColumn(stmt = '') {
+  const match = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+drop\s+(?:column\s+)?(?:`([^`]+)`|"([^"]+)"|\'([^\']+)\'|\[([^\]]+)\]|([a-zA-Z_][\w$]*))\s*$/i)
+  if (!match) return null
+  return {
+    tableToken: match[1],
+    tableName: normalizeTableToken(match[1]),
+    columnName: match[2] || match[3] || match[4] || match[5] || match[6] || null,
+  }
+}
+
+// TRUNCATE TABLE t
+function parseTruncateTable(stmt = '') {
+  const match = stmt.match(/^\s*truncate\s+(?:table\s+)?([a-zA-Z0-9_"'`\.\[\]]+)\s*$/i)
+  if (!match) return null
+  return normalizeTableToken(match[1])
+}
+
+// RENAME TABLE old TO new
+function parseRenameTable(stmt = '') {
+  const match = stmt.match(/^\s*(?:alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+rename\s+(?:to\s+)?|rename\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+to\s+)([a-zA-Z0-9_"'`\.\[\]]+)\s*$/i)
+  if (!match) return null
+  return {
+    oldTableToken: match[1] || match[2],
+    oldTableName: normalizeTableToken(match[1] || match[2]),
+    newTableName: normalizeTableToken(match[3]),
+  }
+}
+
+// SHOW TABLES | SHOW DATABASES | SHOW COLUMNS FROM t
+function parseShowStatement(stmt = '') {
+  if (/^\s*show\s+(?:full\s+)?tables\b/i.test(stmt)) return { type: 'tables' }
+  if (/^\s*show\s+(?:all\s+)?databases\b/i.test(stmt)) return { type: 'databases' }
+  if (/^\s*show\s+schemas\b/i.test(stmt)) return { type: 'databases' }
+  const colMatch = stmt.match(/^\s*show\s+(?:full\s+)?columns\s+(?:from|in)\s+([a-zA-Z0-9_"'`\.\[\]]+)/i)
+  if (colMatch) return { type: 'columns', tableName: normalizeTableToken(colMatch[1]), tableToken: colMatch[1] }
+  return null
+}
+
+// DESCRIBE / DESC t
+function parseDescribeTable(stmt = '') {
+  const match = stmt.match(/^\s*(?:describe|desc)\s+([a-zA-Z0-9_"'`\.\[\]]+)\s*$/i)
+  if (!match) return normalizeTableToken(stmt.match(/^\s*(?:sp_help|exec\s+sp_help)\s+'?([a-zA-Z0-9_]+)'?\s*$/i)?.[1] || '')
+  return normalizeTableToken(match[1])
+}
+
+function parseGetConnectQuery(stmt = '') {
+  const match = stmt.match(/^\s*(?:\(\s*([a-zA-Z0-9_"'`\-]+)\s*\)\s+get\s+connect|get\s*\(\s*([a-zA-Z0-9_"'`\-]+)\s*\)\s+connect|get\s+([a-zA-Z0-9_"'`\-]+)\s+connect)\s*$/i)
+  if (!match) return null
+  return String(match[1] || match[2] || match[3]).replace(/["'`]/g, '').toLowerCase().replace(/-/g, '_')
+}
+
+function runInDatabase(dbName, statement) {
+  if (!dbName) {
+    throw new Error('No database selected. Run CREATE DATABASE ... and USE ... before creating or querying tables.')
+  }
+  alasql(`USE ${escapeIdentifier(dbName)}`)
+  return alasql(statement)
+}
+
+function createDatabaseIfMissing(dbName) {
+  const normalizedDb = String(dbName).toLowerCase()
+  const existedBefore = databaseExists(normalizedDb)
+  try {
+    alasql(`CREATE DATABASE ${escapeIdentifier(normalizedDb)}`)
+  } catch (err) {
+    if (!/exists/i.test(String(err?.message || ''))) throw err
+  }
+  registerKnownDatabase(normalizedDb)
+  return !existedBefore
+}
+
+export function ensureDatabaseExists(dbName) {
+  ensureRuntimeInitialized()
+  if (!dbName) return false
+  return createDatabaseIfMissing(dbName)
+}
+
+export function exportRuntimeSnapshot() {
+  ensureRuntimeInitialized()
+
+  const databases = []
+
+  for (const dbName of [...KNOWN_DATABASES].sort()) {
+    const db = alasql.databases?.[dbName]
+    if (!db?.tables) continue
+
+    const tables = []
+    for (const tableName of Object.keys(db.tables)) {
+      const normalizedTable = String(tableName).toLowerCase()
+      const displayTableName = DB_TABLE_NAME_CASE?.[dbName]?.[normalizedTable] || tableName
+      const schemaName = getTableSchema(dbName, normalizedTable)
+      const caseMap = getTableColumnCaseMap(dbName, normalizedTable) || {}
+      const rows = runInDatabase(dbName, `SELECT * FROM ${escapeIdentifier(displayTableName)}`)
+      const fallbackColumns = Array.isArray(rows) && rows[0] ? Object.keys(rows[0]) : []
+
+      tables.push({
+        name: displayTableName,
+        schemaName,
+        columns: (() => {
+          const typedMap = getTableColumnTypeMap(dbName, normalizedTable)
+          const names = Object.values(caseMap).length > 0 ? Object.values(caseMap) : fallbackColumns
+          return names.map(colName => ({ name: colName, type: typedMap[String(colName).toLowerCase()] || inferSqlType(rows, colName) }))
+        })(),
+        rows: Array.isArray(rows) ? rows : [],
+      })
+    }
+
+    databases.push({ name: dbName, tables })
+  }
+
+  return {
+    version: 1,
+    createdAt: new Date().toISOString(),
+    databases,
+  }
+}
+
+export function importRuntimeSnapshot(snapshot) {
+  ensureRuntimeInitialized()
+  const databases = Array.isArray(snapshot?.databases) ? snapshot.databases : []
+
+  for (const database of databases) {
+    const dbName = String(database?.name || '').toLowerCase().trim()
+    if (!dbName) continue
+
+    ensureDatabaseExists(dbName)
+    setDatabaseConnected(dbName, false)
+
+    const tables = Array.isArray(database?.tables) ? database.tables : []
+    for (const table of tables) {
+      const tableName = String(table?.name || '').trim()
+      if (!tableName) continue
+
+      const schemaName = String(table?.schemaName || 'public')
+      const rows = Array.isArray(table?.rows) ? table.rows : []
+      let columns = Array.isArray(table?.columns) ? table.columns.filter(Boolean) : []
+      if (columns.length === 0 && rows[0]) columns = Object.keys(rows[0]).map(name => ({ name, type: inferSqlType(rows, name) }))
+      if (columns.length === 0) columns = [{ name: 'id', type: 'INT' }]
+
+      const normalizedColumns = columns.map((column) => {
+        if (typeof column === 'object') {
+          return {
+            name: String(column.name || '').trim(),
+            type: normalizeSqlType(column.type || inferSqlType(rows, column.name)),
+          }
+        }
+        const name = String(column || '').trim()
+        return { name, type: inferSqlType(rows, name) }
+      }).filter(c => c.name)
+
+      runInDatabase(dbName, `DROP TABLE IF EXISTS ${escapeIdentifier(tableName)}`)
+      const defs = normalizedColumns.map(column => `${escapeIdentifier(column.name)} ${column.type}`).join(', ')
+      runInDatabase(dbName, `CREATE TABLE ${escapeIdentifier(tableName)} (${defs})`)
+
+      for (const row of rows) {
+        const colSql = normalizedColumns.map(column => escapeIdentifier(column.name)).join(', ')
+        const valuesSql = normalizedColumns.map(column => escapeLiteral(row?.[column.name])).join(', ')
+        runInDatabase(dbName, `INSERT INTO ${escapeIdentifier(tableName)} (${colSql}) VALUES (${valuesSql})`)
+      }
+
+      registerTableColumns(dbName, tableName, normalizedColumns, schemaName)
+    }
+  }
+}
+
+function ensureRuntimeInitialized() {
+  if (runtimeInitialized) return
+  if (runtimeInitError) throw runtimeInitError
+
+  try {
+    if (!alasql) throw new Error('AlaSQL engine failed to load')
+    runtimeInitialized = true
+  } catch (err) {
+    runtimeInitError = err
+    throw err
+  }
+}
+
+function extractTableTokens(sql) {
+  const tokens = []
+  const patterns = [
+    /\bfrom\s+([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\bjoin\s+([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\bupdate\s+([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\binsert\s+into\s+([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\bdelete\s+from\s+([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\bcreate\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\bdrop\s+table\s+(?:if\s+exists\s+)?([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+    /\balter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)/gi,
+  ]
+
+  for (const pattern of patterns) {
+    let match
+    while ((match = pattern.exec(sql)) !== null) {
+      if (match[1]) tokens.push(match[1])
+    }
+  }
+
+  return tokens
+}
+
+function resolveStatementDatabase(sql, currentDb) {
+  const token = extractTableTokens(sql)[0]
+  if (!token) return currentDb
+
+  const explicitDb = extractDbQualifier(token)
+  if (explicitDb) return explicitDb
+  if (currentDb) return currentDb
+
+  const matches = findDatabasesForTable(normalizeTableToken(token))
+  if (matches.length === 1) return matches[0]
+  return ''
+}
+
+function parseUseDatabase(sql) {
+  const match = sql.match(/^\s*use\s+([a-zA-Z0-9_"'`\[\]\.-]+)\s*$/i)
+  if (!match) return null
+  return String(match[1]).replace(/["'`\[\]]/g, '').toLowerCase().replace(/-/g, '_')
+}
+
+function parseCreateDatabase(sql) {
+  const match = sql.match(/^\s*create\s+database\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_"'`\[\]\.-]+)/i)
+  if (!match) return null
+  return String(match[1]).replace(/["'`\[\]]/g, '').toLowerCase().replace(/-/g, '_')
+}
+
+function parseDropDatabase(sql) {
+  const match = sql.match(/^\s*drop\s+database\s+(if\s+exists\s+)?([a-zA-Z0-9_"'`\[\]\.-]+)/i)
+  if (!match) return null
+  return {
+    databaseName: String(match[2]).replace(/["'`\[\]]/g, '').toLowerCase().replace(/-/g, '_'),
+    ifExists: Boolean(match[1]),
+  }
+}
+
+function parseCreateTableToken(sql) {
+  const match = sql.match(/^\s*create\s+table\s+(?:if\s+not\s+exists\s+)?([a-zA-Z0-9_"'`\.\[\]]+)/i)
+  return match?.[1] || null
+}
+
+function parseDropTableToken(sql) {
+  const match = sql.match(/^\s*drop\s+table\s+(?:if\s+exists\s+)?([a-zA-Z0-9_"'`\.\[\]]+)/i)
+  return match?.[1] || null
+}
+
+function listRuntimeTables() {
+  const rows = []
+
+  for (const dbName of [...KNOWN_DATABASES]) {
+    const db = alasql.databases?.[dbName]
+    if (!db?.tables) continue
+
+    for (const tableName of Object.keys(db.tables)) {
+      const normalizedTable = String(tableName).toLowerCase()
+      rows.push({
+        table_catalog: dbName,
+        table_schema: getTableSchema(dbName, normalizedTable),
+        table_name: DB_TABLE_NAME_CASE?.[dbName]?.[normalizedTable] || tableName,
+        table_type: 'BASE TABLE',
+      })
+    }
+  }
+
+  return rows
+}
+
+export function getRuntimeTableMetadata() {
+  ensureRuntimeInitialized()
+
+  const metadata = {}
+
+  for (const dbName of [...KNOWN_DATABASES].sort()) {
+    const db = alasql.databases?.[dbName]
+    if (!db) {
+      removeKnownDatabase(dbName)
+      continue
+    }
+
+    metadata[dbName] = metadata[dbName] || {}
+    if (!db?.tables) continue
+
+    for (const tableName of Object.keys(db.tables)) {
+      const normalizedTable = String(tableName).toLowerCase()
+      const displayTableName = DB_TABLE_NAME_CASE?.[dbName]?.[normalizedTable] || tableName
+      const schemaName = getTableSchema(dbName, normalizedTable)
+      const caseMap = getTableColumnCaseMap(dbName, normalizedTable) || {}
+      const typeMap = getTableColumnTypeMap(dbName, normalizedTable)
+      metadata[dbName][schemaName] = metadata[dbName][schemaName] || {}
+      metadata[dbName][schemaName][displayTableName] = {
+        columns: Object.values(caseMap).map(columnName => ({
+          name: columnName,
+          type: typeMap[String(columnName).toLowerCase()] || 'STRING',
+        })),
+        type: 'table',
+      }
+    }
+  }
+
+  return metadata
+}
+
+function normalizeResultRows(rawResult, limitEnabled, stmt, dbName) {
+  if (!Array.isArray(rawResult)) return { columns: [], rows: [], columnTypes: {} }
+  const limitedRows = limitEnabled ? rawResult.slice(0, 100) : rawResult
+  const rows = remapRowKeysByCase(stmt, dbName, limitedRows)
+  const columns = rows.length > 0 ? Object.keys(rows[0]) : []
+  const knownTypes = mergeColumnTypeMaps(stmt, dbName)
+  const columnTypes = {}
+  for (const columnName of columns) {
+    const lower = String(columnName).toLowerCase()
+    columnTypes[columnName] = normalizeSqlType(knownTypes[lower] || inferSqlType(rows, columnName))
+  }
+  return { columns, rows, columnTypes }
+}
+
+function rewriteCaseUpdateStatement(stmt) {
+  const compact = stmt.trim().replace(/;\s*$/, '')
+  const match = compact.match(/^\s*update\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+set\s+([a-zA-Z_][\w$]*)\s*=\s*case\s+when\s+([\s\S]+?)\s+then\s+([\s\S]+?)\s+else\s+([\s\S]+?)\s+end\s*$/i)
+  if (!match) return null
+
+  const tableToken = match[1]
+  const targetColumn = match[2]
+  const whenCondition = match[3].trim()
+  const thenExpression = match[4].trim()
+  const elseExpression = match[5].trim()
+
+  const updateTrue = `UPDATE ${tableToken} SET ${targetColumn} = ${thenExpression} WHERE (${whenCondition})`
+  const updateFalse = `UPDATE ${tableToken} SET ${targetColumn} = ${elseExpression} WHERE NOT (${whenCondition})`
+  return [updateTrue, updateFalse]
+}
+
+function expandMultiAlterModify(stmt) {
+  // ALTER TABLE t MODIFY a TYPE, MODIFY b TYPE → individual ALTER TABLE statements
+  const headerMatch = stmt.match(/^\s*alter\s+table\s+([a-zA-Z0-9_"'`\.\[\]]+)\s+/i)
+  if (!headerMatch) return null
+  const tablePart = stmt.slice(0, headerMatch[0].length).trimEnd()
+  const rest = stmt.slice(headerMatch[0].length)
+  if (!/^modify\s/i.test(rest)) return null
+  const segments = []
+  let current = ''
+  let depth = 0
+  for (let i = 0; i < rest.length; i += 1) {
+    const ch = rest[i]
+    if (ch === '(') { depth += 1; current += ch; continue }
+    if (ch === ')') { depth -= 1; current += ch; continue }
+    if (ch === ',' && depth === 0) {
+      const trimmed = current.trim()
+      if (trimmed) segments.push(trimmed)
+      current = ''
+      continue
+    }
+    current += ch
+  }
+  if (current.trim()) segments.push(current.trim())
+  if (segments.length <= 1) return null
+  return segments.map(seg => `${tablePart} ${seg}`)
+}
+
+function normalizeStatementsForRuntime(statements) {
+  const normalized = []
+  for (const raw of statements) {
+    const stmt = raw.trim().replace(/;\s*$/, '')
+    if (!stmt) continue
+
+    if (/^\s*(BEGIN|START)\s+(TRANSACTION|TRAN)\s*$/i.test(stmt)) continue
+    if (/^\s*COMMIT(?:\s+(TRANSACTION|TRAN))?\s*$/i.test(stmt)) continue
+    if (/^\s*ROLLBACK(?:\s+(TRANSACTION|TRAN))?\s*$/i.test(stmt)) continue
+    if (/^\s*(SET|DECLARE)\s+/i.test(stmt)) continue
+    if (/^\s*PRINT\s+/i.test(stmt)) continue
+    if (/^\s*USE\s+/i.test(stmt)) { normalized.push(stmt); continue }
+    if (/^\s*CREATE\s+(UNIQUE\s+)?INDEX\s+/i.test(stmt)) continue
+    if (/^\s*DROP\s+INDEX\s+/i.test(stmt)) continue
+    if (/^\s*CREATE\s+(OR\s+REPLACE\s+)?VIEW\s+/i.test(stmt)) continue
+    if (/^\s*DROP\s+VIEW\s+/i.test(stmt)) continue
+
+    // Expand multi-MODIFY ALTER TABLE into individual statements
+    const multiModify = expandMultiAlterModify(stmt)
+    if (multiModify) {
+      normalized.push(...multiModify)
+      continue
+    }
+
+    const rewrittenCase = rewriteCaseUpdateStatement(stmt)
+    if (rewrittenCase && rewrittenCase.length > 0) {
+      normalized.push(...rewrittenCase)
+      continue
+    }
+
+    normalized.push(stmt)
+  }
+  return normalized
+}
+
+export async function importTableData({ databaseName, tableName, rows = [], schemaName = 'public', columnTypes = null }) {
+  ensureRuntimeInitialized()
+
+  const normalizedDb = String(databaseName || '').toLowerCase().trim()
+  const normalizedTable = String(tableName || '').trim()
+
+  if (!normalizedDb) throw new Error('Target database is required.')
+  if (!databaseExists(normalizedDb)) throw new Error(`Database does not exist: ${normalizedDb}`)
+  if (!normalizedTable) throw new Error('Target table name is required.')
+  if (!Array.isArray(rows) || rows.length === 0) throw new Error('No rows to import.')
+
+  const columns = Object.keys(rows[0])
+  if (columns.length === 0) throw new Error('Imported data has no columns.')
+
+  const typedColumns = columns.map((column) => {
+    const directType = columnTypes?.[column]
+    const ciType = !directType && columnTypes
+      ? Object.entries(columnTypes).find(([k]) => k.toLowerCase() === column.toLowerCase())?.[1]
+      : undefined
+    const finalType = normalizeSqlType(directType || ciType || inferSqlType(rows, column))
+    return { name: column, type: finalType }
+  })
+
+  runInDatabase(normalizedDb, `DROP TABLE IF EXISTS ${escapeIdentifier(normalizedTable)}`)
+  const defs = typedColumns
+    .map((column) => {
+      return `${escapeIdentifier(column.name)} ${column.type}`
+    })
+    .join(', ')
+  runInDatabase(normalizedDb, `CREATE TABLE ${escapeIdentifier(normalizedTable)} (${defs})`)
+
+  for (const row of rows) {
+    const colSql = columns.map(escapeIdentifier).join(', ')
+    const valuesSql = columns.map(column => escapeLiteral(row[column])).join(', ')
+    runInDatabase(normalizedDb, `INSERT INTO ${escapeIdentifier(normalizedTable)} (${colSql}) VALUES (${valuesSql})`)
+  }
+
+  registerTableColumns(normalizedDb, normalizedTable, typedColumns, schemaName)
+
+  return {
+    databaseName: normalizedDb,
+    tableName: normalizedTable,
+    rowCount: rows.length,
+    columns,
+  }
+}
+
+export async function executeQuery(sql, options = { limitEnabled: true, activeConnections: null }) {
+  const delay = 200 + Math.random() * 600
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      try {
+        ensureRuntimeInitialized()
+
+        const sqlNoComments = stripSqlComments(sql)
+        if (!sqlNoComments.trim()) { resolve({ success: false, error: 'Empty query', resultSets: [], rowsAffected: 0 }); return }
+
+        const statements = splitSqlStatements(sqlNoComments)
+        const normalizedStatements = normalizeStatementsForRuntime(statements)
+        const resultSets = []
+        const createdDatabases = []
+        const droppedDatabases = []
+        let totalRowsAffected = 0
+        let currentDb = [...KNOWN_DATABASES][0] || ''
+
+        for (const stmt of normalizedStatements) {
+          if (!stmt.trim()) continue
+          const upper = stmt.trim().toUpperCase()
+
+          if (/information_schema|pg_catalog|stl_query|svv_tables/i.test(stmt)) {
+            resultSets.push({
+              columns: ['table_catalog', 'table_schema', 'table_name', 'table_type'],
+              rows: listRuntimeTables(),
+              stmt: stmt.substring(0, 80),
+            })
+            continue
+          }
+
+          if (/current_user|current_database|version\(\)/i.test(stmt)) {
+            resultSets.push({
+              columns: ['current_user', 'current_database', 'version'],
+              rows: [{
+                current_user: 'local_user',
+                current_database: currentDb || null,
+                version: 'Local SQL Workspace (AlaSQL runtime)',
+              }],
+              stmt: stmt.substring(0, 80),
+            })
+            continue
+          }
+
+          const useDb = parseUseDatabase(stmt)
+          if (useDb) {
+            if (!databaseExists(useDb)) {
+              resolve({ success: false, error: `Database does not exist: ${useDb}`, resultSets: [], rowsAffected: 0 })
+              return
+            }
+            runInDatabase(useDb, `SELECT 1`)
+            currentDb = useDb
+            continue
+          }
+
+          const createDb = parseCreateDatabase(stmt)
+          if (createDb) {
+            const created = createDatabaseIfMissing(createDb)
+            createdDatabases.push(createDb)
+            if (created || DB_CONNECTION_STATE[createDb] === undefined) {
+              setDatabaseConnected(createDb, false)
+            }
+            currentDb = createDb
+            continue
+          }
+
+          const getConnectDb = parseGetConnectQuery(stmt)
+          if (getConnectDb) {
+            const creds = getDatabaseCredentials(getConnectDb)
+            if (!creds) {
+              resultSets.push({
+                columns: ['status', 'username', 'password'],
+                rows: [{ status: 'NOT_CONNECTED', username: null, password: null }],
+                stmt: stmt.substring(0, 80),
+              })
+            } else {
+              resultSets.push({
+                columns: ['status', 'username', 'password'],
+                rows: [{ status: 'CONNECTED', username: creds.username, password: creds.password }],
+                stmt: stmt.substring(0, 80),
+              })
+            }
+            continue
+          }
+
+          const dropDb = parseDropDatabase(stmt)
+          if (dropDb) {
+            if (!databaseExists(dropDb.databaseName)) {
+              if (!dropDb.ifExists) {
+                resolve({ success: false, error: `Database does not exist: ${dropDb.databaseName}`, resultSets: [], rowsAffected: 0 })
+                return
+              }
+              continue
+            }
+
+            alasql(`DROP DATABASE ${escapeIdentifier(dropDb.databaseName)}`)
+            removeKnownDatabase(dropDb.databaseName)
+            droppedDatabases.push(dropDb.databaseName)
+            if (currentDb === dropDb.databaseName) currentDb = ''
+            continue
+          }
+
+          // ── SHOW statements ──────────────────────────────────────────────
+          const showSpec = parseShowStatement(stmt)
+          if (showSpec) {
+            if (showSpec.type === 'databases') {
+              resultSets.push({
+                columns: ['Database'],
+                rows: [...KNOWN_DATABASES].sort().map(n => ({ Database: n })),
+                stmt: stmt.substring(0, 80),
+              })
+            } else if (showSpec.type === 'tables') {
+              const db = currentDb
+              const tblRows = listRuntimeTables()
+                .filter(r => !db || r.table_catalog === db)
+                .map(r => ({ Tables_in_db: r.table_name, Table_type: r.table_type }))
+              resultSets.push({ columns: ['Tables_in_db', 'Table_type'], rows: tblRows, stmt: stmt.substring(0, 80) })
+            } else if (showSpec.type === 'columns') {
+              const showDb = resolveTableDatabase(showSpec.tableToken, currentDb) || currentDb
+              const caseMap = getTableColumnCaseMap(showDb, showSpec.tableName) || {}
+              const typeMap = getTableColumnTypeMap(showDb, showSpec.tableName) || {}
+              const colRows = Object.values(caseMap).map(name => ({
+                Field: name,
+                Type: typeMap[String(name).toLowerCase()] || 'STRING',
+                Null: 'YES',
+                Key: '',
+                Default: 'NULL',
+                Extra: '',
+              }))
+              resultSets.push({ columns: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra'], rows: colRows, stmt: stmt.substring(0, 80) })
+            }
+            continue
+          }
+
+          // ── DESCRIBE / DESC / SP_HELP ─────────────────────────────────────
+          if (/^\s*(?:describe|desc|sp_help|exec\s+sp_help)\s+/i.test(stmt)) {
+            const descTable = parseDescribeTable(stmt)
+            if (descTable) {
+              const descDb = resolveTableDatabase(descTable, currentDb) || currentDb
+              const caseMap = getTableColumnCaseMap(descDb, descTable) || {}
+              const typeMap = getTableColumnTypeMap(descDb, descTable) || {}
+              const descRows = Object.values(caseMap).map(name => ({
+                Field: name,
+                Type: typeMap[String(name).toLowerCase()] || 'STRING',
+                Null: 'YES',
+                Key: '',
+                Default: 'NULL',
+                Extra: '',
+              }))
+              resultSets.push({ columns: ['Field', 'Type', 'Null', 'Key', 'Default', 'Extra'], rows: descRows, stmt: stmt.substring(0, 80) })
+              continue
+            }
+          }
+
+          const targetDb = resolveStatementDatabase(stmt, currentDb)
+
+          // ── TRUNCATE TABLE ───────────────────────────────────────────────
+          const truncateTable = parseTruncateTable(stmt)
+          if (truncateTable) {
+            const truncDb = resolveTableDatabase(truncateTable, targetDb) || targetDb
+            const displayTbl = DB_TABLE_NAME_CASE?.[truncDb]?.[truncateTable] || truncateTable
+            runInDatabase(truncDb, `DELETE FROM ${escapeIdentifier(displayTbl)}`)
+            currentDb = truncDb || currentDb
+            continue
+          }
+
+          // ── RENAME TABLE ─────────────────────────────────────────────────
+          const renameTable = parseRenameTable(stmt)
+          if (renameTable) {
+            const renDb = resolveTableDatabase(renameTable.oldTableToken, targetDb) || targetDb
+            applyRenameTable(renDb, renameTable.oldTableName, renameTable.newTableName)
+            currentDb = renDb || currentDb
+            continue
+          }
+
+          // ── ALTER TABLE variants ─────────────────────────────────────────
+          if (/^\s*ALTER\s+TABLE\b/i.test(stmt)) {
+            // MODIFY COLUMN
+            const alterModify = parseAlterModifyColumn(stmt)
+            if (alterModify) {
+              const alterDb = resolveTableDatabase(alterModify.tableToken, targetDb) || targetDb
+              applyAlterModifyColumn(alterDb, alterModify.tableName, alterModify.columnName, alterModify.columnType)
+              currentDb = alterDb || currentDb
+              continue
+            }
+            // PG: ALTER COLUMN ... TYPE
+            const alterColType = parseAlterColumnType(stmt)
+            if (alterColType) {
+              const alterDb = resolveTableDatabase(alterColType.tableToken, targetDb) || targetDb
+              applyAlterModifyColumn(alterDb, alterColType.tableName, alterColType.columnName, alterColType.columnType)
+              currentDb = alterDb || currentDb
+              continue
+            }
+            // MySQL: CHANGE COLUMN
+            const changeCol = parseAlterChangeColumn(stmt)
+            if (changeCol) {
+              const alterDb = resolveTableDatabase(changeCol.tableToken, targetDb) || targetDb
+              applyAlterChangeColumn(alterDb, changeCol.tableName, changeCol.oldColumnName, changeCol.newColumnName, changeCol.columnType)
+              currentDb = alterDb || currentDb
+              continue
+            }
+            // RENAME COLUMN
+            const renameCol = parseAlterRenameColumn(stmt)
+            if (renameCol) {
+              const alterDb = resolveTableDatabase(renameCol.tableToken, targetDb) || targetDb
+              applyAlterRenameColumn(alterDb, renameCol.tableName, renameCol.oldColumnName, renameCol.newColumnName)
+              currentDb = alterDb || currentDb
+              continue
+            }
+            // DROP COLUMN
+            const dropCol = parseAlterDropColumn(stmt)
+            if (dropCol) {
+              const alterDb = resolveTableDatabase(dropCol.tableToken, targetDb) || targetDb
+              applyAlterDropColumn(alterDb, dropCol.tableName, dropCol.columnName)
+              currentDb = alterDb || currentDb
+              continue
+            }
+            // RENAME TABLE (ALTER TABLE t RENAME TO new)
+            const altRenTable = parseRenameTable(stmt)
+            if (altRenTable) {
+              const renDb = resolveTableDatabase(altRenTable.oldTableToken, targetDb) || targetDb
+              applyRenameTable(renDb, altRenTable.oldTableName, altRenTable.newTableName)
+              currentDb = renDb || currentDb
+              continue
+            }
+          }
+
+          const executableStmt = canonicalizeStatementIdentifiers(stmt, targetDb)
+          const rawResult = runInDatabase(targetDb, executableStmt)
+
+          if (upper.startsWith('SELECT') || upper.startsWith('WITH')) {
+            const normalized = normalizeResultRows(rawResult, options.limitEnabled, stmt, targetDb)
+            resultSets.push({ columns: normalized.columns, rows: normalized.rows, columnTypes: normalized.columnTypes, stmt: stmt.substring(0, 80) })
+            currentDb = targetDb || currentDb
+            continue
+          }
+
+          if (typeof rawResult === 'number' && /^(INSERT|UPDATE|DELETE)\b/i.test(upper)) {
+            totalRowsAffected += rawResult
+          }
+
+          if (/^\s*CREATE\s+TABLE\b/i.test(stmt)) {
+            const token = parseCreateTableToken(stmt)
+            const tableName = getOriginalTableName(token)
+            if (tableName) {
+              const schemaName = extractSchemaQualifier(token || '')
+              const createdColumns = extractCreateTableColumns(executableStmt)
+              registerTableColumns(targetDb, tableName, createdColumns, schemaName)
+            }
+          }
+
+          // ADD COLUMN (AlaSQL native, just update our registry)
+          if (/^\s*ALTER\s+TABLE\b/i.test(stmt) && /\bADD\b/i.test(stmt)) {
+            const altered = parseAlterAddColumn(executableStmt)
+            if (altered?.tableName && altered?.columnName) {
+              const alteredDb = resolveTableDatabase(altered.tableToken, targetDb)
+              const existingMap = getTableColumnCaseMap(alteredDb, altered.tableName) || {}
+              const existingTypeMap = getTableColumnTypeMap(alteredDb, altered.tableName) || {}
+              const existingColumns = Object.values(existingMap)
+              const alreadyExists = existingColumns.some(column => column.toLowerCase() === altered.columnName.toLowerCase())
+              if (!alreadyExists) {
+                const nextColumns = [
+                  ...existingColumns.map((name) => ({
+                    name,
+                    type: normalizeSqlType(existingTypeMap[String(name).toLowerCase()] || 'STRING'),
+                  })),
+                  { name: altered.columnName, type: 'STRING' },
+                ]
+                registerTableColumns(
+                  alteredDb,
+                  DB_TABLE_NAME_CASE?.[alteredDb]?.[altered.tableName] || altered.tableName,
+                  nextColumns,
+                  getTableSchema(alteredDb, altered.tableName),
+                )
+              }
+            }
+          }
+
+          if (/^\s*DROP\s+TABLE\b/i.test(stmt)) {
+            const token = parseDropTableToken(stmt)
+            const tableName = normalizeTableToken(token)
+            const dropDb = resolveTableDatabase(token, targetDb)
+            if (tableName) removeTableColumns(dropDb, tableName)
+          }
+
+          currentDb = targetDb || currentDb
+        }
+
+        resolve({ success: true, resultSets, rowsAffected: totalRowsAffected, statementCount: normalizedStatements.length, createdDatabases, droppedDatabases })
+      } catch (err) {
+        resolve({ success: false, error: err.message, resultSets: [], rowsAffected: 0 })
+      }
+    }, delay)
+  })
+}
